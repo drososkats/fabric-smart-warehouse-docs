@@ -1,0 +1,24 @@
+\section{Hybrid Cloud Deployment (Phase A)}
+
+{
+    \metroset{titleformat frame=smallcaps}
+\begin{frame}{Initial Implementation: Integrating Local Containers with Managed DBaaS}
+
+
+        \begin{itemize}
+            \item \textbf{Custom Docker Images:}: We created \textcolor{HUAblue}{\textbf{Dockerfiles}} for the Frontend and Backend to build our own custom images.
+            
+            \item \textbf{Docker-Compose Setup:}: We used a \textcolor{HUAblue}{\texttt{docker-compose}} file to run the Frontend and Backend containers together easily.
+            
+           \item \textbf{Kubernetes Infrastructure:} We created YAML manifests to set up RabbitMQ and MinIO as services inside the\textcolor{HUAblue}{\textbf{MicroK8s cluster}}.
+            
+            \item \textbf{Hybrid Database Connection:}: The Backend connects directly to MongoDB Atlas in the Public Cloud using a simple connection string in the \textcolor{HUAblue}{\textbf{.env}} file.
+            
+            \item \textbf{Proof of Concept}: System logs confirm that all parts (Docker, MicroK8s, and Atlas) communicate correctly.
+            
+        \end{itemize}
+
+
+
+\end{frame}
+}

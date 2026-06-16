@@ -1,0 +1,25 @@
+\section{Proposed Architecture \& Methodology}
+
+
+{
+    \metroset{titleformat frame=smallcaps}
+\begin{frame}{Strategic Implementation: From Containerization to Hybrid Orchestration}
+
+\begin{itemize}
+    \item \textbf{Architectural Pillars:}
+    \begin{itemize}
+        \item \textcolor{HUAblue}{\textbf{Containerization:}} Packaging services into Docker images for environment-agnostic execution.
+        \item \textcolor{HUAblue}{\textbf{Full Orchestration:}} Transitioning from simple runtime to MicroK8s for automated lifecycle management.
+    \end{itemize}
+    \item \textbf{The Hybrid Deployment Strategy (Consistent in both phases):}
+    \begin{itemize}
+        \item \textbf{Data Persistence (Public Cloud):} Leveraging MongoDB Atlas (DBaaS) to ensure data availability and durability outside the local cluster.
+        \item \textbf{Application \& Logic (Private Cloud):} Running Backend, Frontend, and services (rabbitmq, minIO, node-RED, Thingsboard) within the local MicroK8s environment.
+        
+    \end{itemize}
+    \item \textbf{Automation:} Using YAML manifests to eliminate manual configuration.
+\end{itemize}
+
+\end{frame}
+}
+

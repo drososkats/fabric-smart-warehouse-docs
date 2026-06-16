@@ -1,0 +1,45 @@
+\section{Technology Stack}
+
+{
+    \metroset{titleformat frame=smallcaps}
+    \begin{frame}{Infrastructure and Technologies: A Unified Cloud-Native Stack}
+        \centering
+        \renewcommand{\arraystretch}{1.2} % Ελαφρώς μικρότερο stretch για να χωρέσει η λεζάντα
+        \footnotesize % Χρήση footnotesize για σίγουρη εφαρμογή στα όρια του frame
+
+
+            \begin{itemize}
+        \item \textbf{Integration Maturity:} Selection of production-grade tools that support a full application lifecycle.
+        \item \textbf{Hybrid Interoperability:} Seamless communication between on-premise MicroK8s resources and public DBaaS (MongoDB Atlas).
+        \item \textbf{Event-Driven Foundation:} Leveraging RabbitMQ and Node-RED for real-time asynchronous data flows.
+        
+    \end{itemize}
+
+
+
+
+
+
+        
+        \begin{tabularx}{\textwidth}{|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.8cm}|>{\centering\arraybackslash}X|}
+        \hline
+        \rowcolor{HUAblue} 
+        \textbf{\color{white} Service} & \textbf{\color{white} Technology} & \textbf{\color{white} Role in Infrastructure} \\ \hline
+        Orchestration & MicroK8s & Container management and orchestration \\ \hline
+        Containerization & Docker \& Hub & Image registry for distribution \\ \hline
+        Messaging & RabbitMQ & Asynchronous communication (Event Bus) \\ \hline
+        Database & MongoDB Atlas & Managed NoSQL database service \\ \hline
+        Storage & MinIO & Object Storage for files and images \\ \hline
+        IoT Logic & Node-RED & Flow-based data processing \\ \hline
+        Visualization & Thingsboard & IoT Dashboards \& Real-time monitoring \\ \hline
+        \end{tabularx}
+        
+        \vspace{0.3cm}
+        \scriptsize
+        \textit{Table 1: Infrastructure Technologies and Services}
+
+    \end{frame}
+
+
+
+}

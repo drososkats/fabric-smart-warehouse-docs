@@ -1,0 +1,305 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for MSc Advanced in Computer Science and Information Systems
+% Version 1.0 (18-Jul-2025)
+%
+% Original author: Drosos Katsimpras
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fill in your title, name, and committee members in commands.tex.
+
+%\documentclass[11pt, letterpaper]{article}
+
+\documentclass[12pt,a4paper,oneside]{article}
+\usepackage{xcolor}
+\definecolor{HUAblue}{HTML}{005A8C} % Defining the color with a name
+\definecolor{lightgray}{gray}{0.95}
+\usepackage{tikz}
+\usetikzlibrary{spy}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{chngcntr}
+\usepackage{threeparttable}
+\counterwithin{figure}{section}
+
+
+
+% --- Font Change Starts Here ---
+%\usepackage[default]{roboto} 
+% --- Font Change Ends Here ---
+\usepackage{booktabs}      % Για ποιοτικές γραμμές διαχωρισμού
+
+\usepackage[table]{xcolor} % Απαραίτητο για το χρώμα στις γραμμές
+\usepackage{tabularx}      % Για δυναμικό πλάτος στηλών
+% Load necessary packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[greek,english]{babel}
+
+\addto\captionsgreek{%
+  \renewcommand{\figurename}{Εικόνα}%
+}
+
+% Force figure and table captions to always use the Greek words
+\AtBeginDocument{%
+  \renewcommand{\figurename}{Εικόνα}%
+  \renewcommand{\tablename}{Πίνακας}%
+}
+
+\usepackage{caption}   % <--- add this package if you don’t have it already
+\usepackage{tikz}
+\captionsetup[figure]{name=Εικόνα, labelsep=colon}   % always "Εικόνα 1:"
+\captionsetup[table]{name=Πίνακας, labelsep=colon}   % always "Πίνακας 1:"
+\usepackage{listings}
+\usepackage{alphabeta}
+\usepackage{verbatim}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{lastpage}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{xspace}
+\usepackage{lipsum} % For generating dummy text. 
+\usepackage[margin=1in]{geometry}
+\usepackage{titlesec} % For customizing section titles
+\usepackage{abstract} % For customizing abstract
+%\usepackage[numbers]{natbib} % For bibliography
+\usepackage{hyperref} % Create link for content
+%\usepackage{multibib}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{appendix}
+
+\usepackage[style=numeric, backend=biber, language=english, sorting=none, natbib=true, hyperref=true, defernumbers=true]{biblatex}
+
+%\usepackage[none]{hyphenat}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,          % color of internal links (black)
+  citecolor=black,  % color of citation links (blue)
+  urlcolor=black,           % color of URLs (black)
+  linktoc=all,              % create links for all TOC items
+  linkcolor=black 
+}
+
+% Το αρχείο που περιέχει τη βιβλιογραφία της εργασίας.
+\addbibresource{bib/refer.bib}
+
+
+\graphicspath{ {figures/} }
+\usepackage{array}
+
+
+%\pagestyle{myheadings}                          % Own header
+\pagestyle{fancy}                               % Own style
+\fancyhf{}                                      % Clear header, footer
+
+\setlength{\headheight}{30pt}                   % Set header hight
+\renewcommand{\headrulewidth}{0.1pt}            % Top line
+\renewcommand{\footrulewidth}{0.1pt}            % Bottom line
+
+
+% Header
+\fancyhead[L]{\footnotesize Σχεδιασμός Cloud Native Εφαρμογών}
+\fancyhead[R]{\includegraphics[width=2.5cm]{figures/hua/dit-logo.png}}
+\renewcommand{\headrulewidth}{0.2pt}
+
+%\fancyhead[L]{\includegraphics[width=1.4cm]{fig/hua-dit-logo.jpeg}} % Header left
+%\fancyhead[R]{\includegraphics[width=1.4cm]{fig/hua/hua-dit-logo.jpeg}} % Header left
+%\fancyhead[C]{}                                 % Header center
+%\fancyhead[L]{Χαροκόπειο Πανεπιστήμιο Αθηνών}   % Header right
+
+% Footer
+\fancyfoot[L]{\textcopyright Drosos Katsimpras}
+\fancyfoot[R]{\thepage}
+\renewcommand{\footrulewidth}{0.2pt}
+
+
+%\fancyfoot[L]{\textsf{\textcopyright Drosos Katsimpras}} % Footer left
+%\fancyfoot[C]{}                                 % Footer center
+%\fancyfoot[R]{\thepage\ }
+%/ \pageref{LastPage}
+
+%\fancyfoot[R]{\thepage}      % Footer right
+
+%\fancyfoot[R]{\thepage/\pageref{LastPage}}      % Footer right
+
+
+%\newcites{mypub}{Published}
+%\newcites{review}{Under Review}
+%\newcites{prepare}{In Preparation}
+
+% Ρυθμίσεις για την εμφάνιση του κώδικα
+\lstset{
+    basicstyle=\ttfamily\small, % Γραμματοσειρά κώδικα
+    backgroundcolor=\color{gray!10}, % Ελαφρύ γκρι φόντο
+    frame=single, % Πλαίσιο γύρω από τον κώδικα
+    breaklines=true, % Αυτόματη αλλαγή γραμμής αν είναι μεγάλη
+    keywordstyle=\color{blue},
+    captionpos=b % Λεζάντα στο κάτω μέρος
+}
+
+
+\singlespacing % Set single spacing
+\setlength{\parskip}{0.25\baselineskip} % Set paragraph spacing
+%\hypersetup{
+ %   colorlinks=true,
+ %   citecolor=black,
+  %  filecolor=black,
+   % linkcolor=black,
+    %urlcolor=black
+%}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=HUAblue,      % Για Εικόνες, Πίνακες, Sections
+    citecolor=HUAblue,      % Για τη Βιβλιογραφία
+    urlcolor=blue,          % Για εξωτερικά Links (Websites)
+    linktoc=all
+}
+
+\input{commands}
+
+%%%%%%%%%%%%%%%%%%%%%%%%BEGIN DOCUMENT%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\pagenumbering{roman}
+
+\input{chapters/titlepage}
+
+\clearpage
+\thispagestyle{empty}
+\mbox{} % Blank page after title
+
+% Abstract page
+\cleardoublepage
+\pagestyle{plain} % Use 'plain' to show page numbers
+\phantomsection 
+\addcontentsline{toc}{section}{Περίληψη} 
+\label{sec:abstract}
+\input{chapters/abstractpage}
+
+% Blank page after abstract
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% Table of contents
+\cleardoublepage
+\pagestyle{plain}
+\selectlanguage{greek}
+\tableofcontents
+\selectlanguage{english}
+
+% Blank page after TOC
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% List of Figures - THIS WILL SHOW ROMAN NUMBERING
+\cleardoublepage
+\pagestyle{plain} % This restores page numbers
+\phantomsection      
+\addcontentsline{toc}{section}{Κατάλογος Σχημάτων}
+\selectlanguage{greek}
+\listoffigures
+\selectlanguage{english}
+
+% Blank page after Figures
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% List of Tables - THIS WILL SHOW ROMAN NUMBERING
+\cleardoublepage
+\pagestyle{plain} % This restores page numbers
+\phantomsection  
+\addcontentsline{toc}{section}{Κατάλαγος Πινάκων}
+\selectlanguage{greek}
+\listoftables
+\selectlanguage{english}
+
+% Blank page after Tables
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% List of abbreviations - THIS WILL SHOW ROMAN NUMBERING
+\cleardoublepage
+\pagestyle{plain} % This restores page numbers
+\phantomsection
+\addcontentsline{toc}{section}{Λίστα Συντομογραφιών}
+\selectlanguage{greek}
+\section*{Λίστα Συντομογραφιών} % Add this line for the title
+\selectlanguage{english}
+\listofabbreviations
+
+
+% Blank page after Tables
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% Switch back to fancy headers for chapters
+\cleardoublepage
+\pagestyle{fancy}  % <-- THIS RESTORES HEADERS
+\pagenumbering{arabic}  % Switch to Arabic numbering for main content
+
+\input{chapters/chapter1}
+\input{chapters/chapter2}
+\input{chapters/chapter3}
+\input{chapters/chapter4}
+\input{chapters/chapter5}
+\input{chapters/chapter6}
+\input{chapters/chapter7}
+
+% Conclusion
+\phantomsection
+\addcontentsline{toc}{section}{Συμπεράσματα και Μελλοντικές επεκτάσεις}
+\input{chapters/conclusion}
+
+
+% Blank page after Conclusion
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% Switch back to fancy headers for chapters
+%\cleardoublepage
+%\pagestyle{fancy}  % <-- THIS RESTORES HEADERS
+%\pagenumbering{arabic}  % Switch to Arabic numbering for main content
+
+\phantomsection
+\addcontentsline{toc}{section}{Παράρτημα Α: Python scripts}
+\input{chapters/appendixA}
+
+
+\clearpage
+\thispagestyle{empty}
+\mbox{} % Optional: ensures the page is truly created
+% ------------------------------------
+
+\cleardoublepage
+\pagestyle{empty}
+
+\phantomsection
+\addcontentsline{toc}{section}{Παράρτημα Β: Αποθετήριο Κώδικα (GitHub)}
+\input{chapters/appendixB}
+
+
+\clearpage
+\thispagestyle{empty}
+\mbox{} % Optional: ensures the page is truly created
+% ------------------------------------
+
+\cleardoublepage
+\pagestyle{empty}
+%\newpage
+% References
+\phantomsection
+\nocite{*}
+\printbibliography[heading=bibintoc, title={Βιβλιογραφικές Αναφορές}]
+
+%\label{LastPage}
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%END DOCUMENT%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
