@@ -1,5 +1,9 @@
 # Fabric Smart Warehouse — Documentation
 
+![LaTeX](https://img.shields.io/badge/Made%20with-LaTeX-008080?logo=latex&logoColor=white)
+![Overleaf](https://img.shields.io/badge/Synced%20with-Overleaf-47A141?logo=overleaf&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue)
+
 LaTeX sources for the technical report and the presentation of the **Fabric Smart Warehouse** project, developed for the *Cloud Native Applications* course (MSc), Harokopio University of Athens.
 
 This repository contains only the documentation (LaTeX). The application source code lives in a separate repository.
@@ -69,4 +73,4 @@ This repository is linked to an Overleaf project. To avoid merge conflicts, foll
 
 - **Course:** Cloud Native Applications (Spring 2026)
 - **Institution:** Harokopio University of Athens — Dept. of Informatics and Telematics
-- **Author:** Drosos Katsigarakis — `ais25123`
+- **Author:** Drosos Katsimpras — `ais25123`
