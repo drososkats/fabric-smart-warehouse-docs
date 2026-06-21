@@ -1,18 +1,18 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Template for MSc Advanced in Computer Science and Information Systems
-% Version 1.0 (18-Jul-2025)
+% Version 5.4 (21-June-2026)
 %
 % Original author: Drosos Katsimpras
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Fill in your title, name, and committee members in commands.tex.
-
-%\documentclass[11pt, letterpaper]{article}
-
 \documentclass[12pt,a4paper,oneside]{article}
 \usepackage{xcolor}
-\definecolor{HUAblue}{HTML}{005A8C} % Defining the color with a name
+\definecolor{HUAblue}{HTML}{005A8C} 
 \definecolor{lightgray}{gray}{0.95}
+\definecolor{archBlue}{RGB}{210, 230, 247}
+\definecolor{archTeal}{RGB}{200, 235, 220}
+\definecolor{archAmber}{RGB}{250, 230, 195}
+\definecolor{archCoral}{RGB}{250, 215, 200}
 \usepackage{tikz}
 \usetikzlibrary{spy}
 \usepackage{multirow}
@@ -20,17 +20,52 @@
 \usepackage{chngcntr}
 \usepackage{threeparttable}
 \counterwithin{figure}{section}
+\usepackage{listings}
+
+\definecolor{yamlblue}{RGB}{0, 102, 204}
+\definecolor{yamlbrown}{RGB}{160, 82, 45}
+\definecolor{yamlgray}{RGB}{100, 100, 100}
+
+\lstdefinelanguage{yaml}{
+  keywords={apiVersion, kind, metadata, name, spec, accessModes, resources, requests, storage},
+  keywordstyle=\color{yamlblue}\bfseries,
+  sensitive=false,
+  comment=[l]{\#},
+  commentstyle=\color{yamlgray}\itshape,
+  stringstyle=\color{yamlbrown},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{white},   
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,                   
+    rulecolor=\color{black!20},     
+    numberstyle=\tiny\color{gray},
+    captionpos=b,
+    showstringspaces=false
+}
+\lstset{style=mystyle}
+
+\lstdefinelanguage{terraform}{
+  keywords={resource, variable, output, provider, module, data, locals},
+  keywordstyle=\color{blue}\bfseries,
+  morekeywords=[2]{azurerm_linux_virtual_machine, os_disk, source_image_reference, admin_ssh_key},
+  keywordstyle=[2]\color{teal}\bfseries,
+  morestring=[b]",
+  stringstyle=\color{brown},
+  comment=[l]{//},
+  commentstyle=\color{gray}\itshape,
+  sensitive=true
+}
 
 
+\usepackage{booktabs}     
 
-% --- Font Change Starts Here ---
-%\usepackage[default]{roboto} 
-% --- Font Change Ends Here ---
-\usepackage{booktabs}      % Για ποιοτικές γραμμές διαχωρισμού
-
-\usepackage[table]{xcolor} % Απαραίτητο για το χρώμα στις γραμμές
-\usepackage{tabularx}      % Για δυναμικό πλάτος στηλών
-% Load necessary packages
+\usepackage[table]{xcolor} 
+\usepackage{tabularx}     
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[greek,english]{babel}
@@ -45,10 +80,11 @@
   \renewcommand{\tablename}{Πίνακας}%
 }
 
-\usepackage{caption}   % <--- add this package if you don’t have it already
+\usepackage{caption}   
 \usepackage{tikz}
-\captionsetup[figure]{name=Εικόνα, labelsep=colon}   % always "Εικόνα 1:"
-\captionsetup[table]{name=Πίνακας, labelsep=colon}   % always "Πίνακας 1:"
+\usetikzlibrary{positioning, shadows}
+\captionsetup[figure]{name=Εικόνα, labelsep=colon}   
+\captionsetup[table]{name=Πίνακας, labelsep=colon} 
 \usepackage{listings}
 \usepackage{alphabeta}
 \usepackage{verbatim}
@@ -58,32 +94,32 @@
 \usepackage{float}
 \usepackage{setspace}
 \usepackage{xspace}
-\usepackage{lipsum} % For generating dummy text. 
+\usepackage{lipsum} 
 \usepackage[margin=1in]{geometry}
 \usepackage{titlesec} % For customizing section titles
 \usepackage{abstract} % For customizing abstract
-%\usepackage[numbers]{natbib} % For bibliography
 \usepackage{hyperref} % Create link for content
-%\usepackage{multibib}
 \usepackage{tcolorbox}
 \usepackage{fancyhdr}
 \usepackage{appendix}
+\usetikzlibrary{arrows.meta, positioning}
 
 \usepackage[style=numeric, backend=biber, language=english, sorting=none, natbib=true, hyperref=true, defernumbers=true]{biblatex}
+\usepackage{afterpage}
+\usepackage{pdflscape}
 
-%\usepackage[none]{hyphenat}
 
 \hypersetup{
   colorlinks=true,
   linkcolor=black,          % color of internal links (black)
-  citecolor=black,  % color of citation links (blue)
+  citecolor=black,          % color of citation links (blue)
   urlcolor=black,           % color of URLs (black)
   linktoc=all,              % create links for all TOC items
   linkcolor=black 
 }
 
 % Το αρχείο που περιέχει τη βιβλιογραφία της εργασίας.
-\addbibresource{bib/refer.bib}
+\addbibresource{bib/references.bib}
 
 
 \graphicspath{ {figures/} }
@@ -104,57 +140,28 @@
 \fancyhead[R]{\includegraphics[width=2.5cm]{figures/hua/dit-logo.png}}
 \renewcommand{\headrulewidth}{0.2pt}
 
-%\fancyhead[L]{\includegraphics[width=1.4cm]{fig/hua-dit-logo.jpeg}} % Header left
-%\fancyhead[R]{\includegraphics[width=1.4cm]{fig/hua/hua-dit-logo.jpeg}} % Header left
-%\fancyhead[C]{}                                 % Header center
-%\fancyhead[L]{Χαροκόπειο Πανεπιστήμιο Αθηνών}   % Header right
-
 % Footer
-\fancyfoot[L]{\textcopyright Drosos Katsimpras}
+\fancyfoot[L]{\textcopyright Drosos Katsimpras - (ais25123)}
 \fancyfoot[R]{\thepage}
 \renewcommand{\footrulewidth}{0.2pt}
 
-
-%\fancyfoot[L]{\textsf{\textcopyright Drosos Katsimpras}} % Footer left
-%\fancyfoot[C]{}                                 % Footer center
-%\fancyfoot[R]{\thepage\ }
-%/ \pageref{LastPage}
-
-%\fancyfoot[R]{\thepage}      % Footer right
-
-%\fancyfoot[R]{\thepage/\pageref{LastPage}}      % Footer right
-
-
-%\newcites{mypub}{Published}
-%\newcites{review}{Under Review}
-%\newcites{prepare}{In Preparation}
-
-% Ρυθμίσεις για την εμφάνιση του κώδικα
 \lstset{
-    basicstyle=\ttfamily\small, % Γραμματοσειρά κώδικα
-    backgroundcolor=\color{gray!10}, % Ελαφρύ γκρι φόντο
-    frame=single, % Πλαίσιο γύρω από τον κώδικα
-    breaklines=true, % Αυτόματη αλλαγή γραμμής αν είναι μεγάλη
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{gray!10}, 
+    frame=single, 
+    breaklines=true, 
     keywordstyle=\color{blue},
-    captionpos=b % Λεζάντα στο κάτω μέρος
+    captionpos=b 
 }
 
-
-\singlespacing % Set single spacing
-\setlength{\parskip}{0.25\baselineskip} % Set paragraph spacing
-%\hypersetup{
- %   colorlinks=true,
- %   citecolor=black,
-  %  filecolor=black,
-   % linkcolor=black,
-    %urlcolor=black
-%}
+\singlespacing 
+\setlength{\parskip}{0.25\baselineskip} 
 
 \hypersetup{
     colorlinks=true,
-    linkcolor=HUAblue,      % Για Εικόνες, Πίνακες, Sections
-    citecolor=HUAblue,      % Για τη Βιβλιογραφία
-    urlcolor=blue,          % Για εξωτερικά Links (Websites)
+    linkcolor=HUAblue,      
+    citecolor=HUAblue,      
+    urlcolor=blue,          
     linktoc=all
 }
 
@@ -173,7 +180,7 @@
 
 % Abstract page
 \cleardoublepage
-\pagestyle{plain} % Use 'plain' to show page numbers
+\pagestyle{plain}
 \phantomsection 
 \addcontentsline{toc}{section}{Περίληψη} 
 \label{sec:abstract}
@@ -196,9 +203,9 @@
 \thispagestyle{empty}
 \mbox{}
 
-% List of Figures - THIS WILL SHOW ROMAN NUMBERING
+
 \cleardoublepage
-\pagestyle{plain} % This restores page numbers
+\pagestyle{plain} 
 \phantomsection      
 \addcontentsline{toc}{section}{Κατάλογος Σχημάτων}
 \selectlanguage{greek}
@@ -210,30 +217,28 @@
 \thispagestyle{empty}
 \mbox{}
 
-% List of Tables - THIS WILL SHOW ROMAN NUMBERING
+
 \cleardoublepage
-\pagestyle{plain} % This restores page numbers
+\pagestyle{plain}
 \phantomsection  
 \addcontentsline{toc}{section}{Κατάλαγος Πινάκων}
 \selectlanguage{greek}
 \listoftables
 \selectlanguage{english}
 
-% Blank page after Tables
+
 \cleardoublepage
 \thispagestyle{empty}
 \mbox{}
 
-% List of abbreviations - THIS WILL SHOW ROMAN NUMBERING
 \cleardoublepage
-\pagestyle{plain} % This restores page numbers
+\pagestyle{plain} 
 \phantomsection
 \addcontentsline{toc}{section}{Λίστα Συντομογραφιών}
 \selectlanguage{greek}
-\section*{Λίστα Συντομογραφιών} % Add this line for the title
+\section*{Λίστα Συντομογραφιών} 
 \selectlanguage{english}
 \listofabbreviations
-
 
 % Blank page after Tables
 \cleardoublepage
@@ -242,8 +247,8 @@
 
 % Switch back to fancy headers for chapters
 \cleardoublepage
-\pagestyle{fancy}  % <-- THIS RESTORES HEADERS
-\pagenumbering{arabic}  % Switch to Arabic numbering for main content
+\pagestyle{fancy}  
+\pagenumbering{arabic}
 
 \input{chapters/chapter1}
 \input{chapters/chapter2}
@@ -258,25 +263,19 @@
 \addcontentsline{toc}{section}{Συμπεράσματα και Μελλοντικές επεκτάσεις}
 \input{chapters/conclusion}
 
-
 % Blank page after Conclusion
 \cleardoublepage
 \thispagestyle{empty}
 \mbox{}
 
-% Switch back to fancy headers for chapters
-%\cleardoublepage
-%\pagestyle{fancy}  % <-- THIS RESTORES HEADERS
-%\pagenumbering{arabic}  % Switch to Arabic numbering for main content
-
 \phantomsection
-\addcontentsline{toc}{section}{Παράρτημα Α: Python scripts}
+\addcontentsline{toc}{section}{Παράρτημα Α: Τεχνική Αναφορά}
 \input{chapters/appendixA}
-
 
 \clearpage
 \thispagestyle{empty}
-\mbox{} % Optional: ensures the page is truly created
+\mbox{} 
+
 % ------------------------------------
 
 \cleardoublepage
@@ -289,17 +288,15 @@
 
 \clearpage
 \thispagestyle{empty}
-\mbox{} % Optional: ensures the page is truly created
+\mbox{} 
+
 % ------------------------------------
 
 \cleardoublepage
 \pagestyle{empty}
-%\newpage
-% References
 \phantomsection
 \nocite{*}
 \printbibliography[heading=bibintoc, title={Βιβλιογραφικές Αναφορές}]
-
-%\label{LastPage}
 \end{document}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%END DOCUMENT%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

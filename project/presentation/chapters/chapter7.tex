@@ -1,0 +1,29 @@
+\section{Monitoring, Scaling \& SLAs}
+{
+    \metroset{titleformat frame=smallcaps}
+
+% --- Slide 1 (words) ---
+\begin{frame}{Observability \& Autoscaling}
+\begin{itemize}
+    \item \textbf{Two key metrics:} HTTP request latency and CPU/memory utilization, collected by Prometheus.
+    \item \textbf{Visualization:} Grafana dashboards turn raw metrics into readable, real-time charts.
+    \item \textcolor{HUAblue}{\textbf{Autoscaling:}} the HPA reads these metrics and scales the backend from 2 to 10 pods under load.
+\end{itemize}
+\end{frame}
+
+% --- Slide 2 (diagram) ---
+\begin{frame}{Metrics-Driven Scaling}
+    \centering
+    %\includegraphics[width=\textwidth]{figures/monitoring-autoscaling}
+\end{frame}
+
+% --- Slide 3 (words + results) ---
+\begin{frame}{Experimental SLAs: Gold, Silver, Bronze}
+\begin{itemize}
+    \item \textbf{Load testing:} generated increasing load (50 to 1000 users) and measured response times.
+    \item \textbf{Deriving the rule:} the 99\% CDF of latency gives the threshold for each service class.
+    \item \textcolor{HUAblue}{\textbf{Three tiers:}} Gold (strict), Silver (standard), Bronze (relaxed) -- defined from real measurements, not guesses.
+\end{itemize}
+\end{frame}
+
+}

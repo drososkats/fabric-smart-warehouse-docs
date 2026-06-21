@@ -1,16 +1,28 @@
-\section*{Παράρτημα B: Github repository}
+\section*{Παράρτημα Β: \textit{GitHub} Repository}
+Για την υλοποίηση και τη διευκόλυνση της αναπαραγωγής των αποτελεσμάτων, το σύνολο των αρχείων ρυθμίσεων (\textit{configuration files}), των \textit{scripts} αυτοματοποίησης και του κώδικα της εφαρμογής, έχει αναρτηθεί στο προσωπικό μου \textit{repository} στο \textit{GitHub}.
 
-
-Για την υλοποίησης και τη διευκόλυνση της αναπαραγωγής των αποτελεσμάτων, το σύνολο των αρχείων ρυθμίσεων (configuration files), των scripts αυτοματοποίησης και του κώδικα Python για τη συλλογή τηλεμετρίας, έχει αναρτηθεί στο προσωπικό μου repository στο GitHub.
-
-Στο repository περιλαμβάνονται:
+Στο \textit{repository} περιλαμβάνονται:
 \begin{itemize}
-    \item 
-    \item 
-    \item 
-    \item Οδηγίες εγκατάστασης (README.md).
+    \item Ο πηγαίος κώδικας του \textit{backend} και του \textit{frontend} (\texttt{backend/}, \texttt{frontend/}).
+    \item Τα αρχεία υποδομής \textit{OpenTofu} (\texttt{infrastructure/}) και τα \textit{Ansible roles} (\texttt{ansible/}).
+    \item Τα \textit{Kubernetes manifests} (\texttt{kubernetes/}), το \textit{Jenkinsfile} (\texttt{ci/}), και ο κώδικας της \textit{serverless} συνάρτησης (\texttt{serverless/}).
+    \item Οδηγίες εγκατάστασης και στοιχεία δοκιμαστικών λογαριασμών (\texttt{README.md}).
 \end{itemize}
 
-\textbf{Σύνδεσμος Αποθετηρίου:} 
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Σύνδεσμοι \textit{repository}}
+\label{tab:repos}
+\small
+\begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{3cm} | X |}
+\hline
+\rowcolor{HUAblue} 
+\textbf{\color{white} Repository} & \textbf{\color{white} URL} \\ \hline
 
-\url{https://github.com/drososkats/}
+Project & \url{https://github.com/drososkats/fabric-smart-warehouse} \\ \hline
+
+\rowcolor{lightgray!30}
+(\textit{Documentation}) & \url{https://github.com/drososkats/fabric-smart-warehouse-docs} \\ \hline
+\end{tabularx}
+\end{table}

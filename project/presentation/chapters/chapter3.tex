@@ -1,45 +1,29 @@
-\section{Technology Stack}
-
+\section{Automation \& Security}
 {
     \metroset{titleformat frame=smallcaps}
-    \begin{frame}{Infrastructure and Technologies: A Unified Cloud-Native Stack}
-        \centering
-        \renewcommand{\arraystretch}{1.2} % Ελαφρώς μικρότερο stretch για να χωρέσει η λεζάντα
-        \footnotesize % Χρήση footnotesize για σίγουρη εφαρμογή στα όρια του frame
 
+% --- Slide 1 (words) ---
+\begin{frame}{Infrastructure as Code: Two Automated Steps}
+\begin{itemize}
+    \item \textbf{Provisioning -- OpenTofu:} declaratively creates the Azure VM (compute, disk, networking).
+    \item \textbf{Configuration -- Ansible:} installs Docker, MicroK8s and all dependencies on the VM.
+    \item \textcolor{HUAblue}{\textbf{The result:}} the entire environment is reproducible from code -- no manual setup, no "works on my machine".
+\end{itemize}
+\end{frame}
 
-            \begin{itemize}
-        \item \textbf{Integration Maturity:} Selection of production-grade tools that support a full application lifecycle.
-        \item \textbf{Hybrid Interoperability:} Seamless communication between on-premise MicroK8s resources and public DBaaS (MongoDB Atlas).
-        \item \textbf{Event-Driven Foundation:} Leveraging RabbitMQ and Node-RED for real-time asynchronous data flows.
-        
-    \end{itemize}
+% --- Slide 2 (diagram) ---
+\begin{frame}{The Provisioning \& Configuration Pipeline}
+    \centering
+    %\includegraphics[width=\textwidth]{figures/deployment-iac}
+\end{frame}
 
-
-
-
-
-
-        
-        \begin{tabularx}{\textwidth}{|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.8cm}|>{\centering\arraybackslash}X|}
-        \hline
-        \rowcolor{HUAblue} 
-        \textbf{\color{white} Service} & \textbf{\color{white} Technology} & \textbf{\color{white} Role in Infrastructure} \\ \hline
-        Orchestration & MicroK8s & Container management and orchestration \\ \hline
-        Containerization & Docker \& Hub & Image registry for distribution \\ \hline
-        Messaging & RabbitMQ & Asynchronous communication (Event Bus) \\ \hline
-        Database & MongoDB Atlas & Managed NoSQL database service \\ \hline
-        Storage & MinIO & Object Storage for files and images \\ \hline
-        IoT Logic & Node-RED & Flow-based data processing \\ \hline
-        Visualization & Thingsboard & IoT Dashboards \& Real-time monitoring \\ \hline
-        \end{tabularx}
-        
-        \vspace{0.3cm}
-        \scriptsize
-        \textit{Table 1: Infrastructure Technologies and Services}
-
-    \end{frame}
-
-
+% --- Slide 3 (words) ---
+\begin{frame}{Managing Secrets Securely}
+\begin{itemize}
+    \item \textbf{No secrets in Git:} credentials (MongoDB, MinIO, RabbitMQ) are never committed to the repository.
+    \item \textbf{Externalized configuration:} secrets are stored as Kubernetes Secrets and injected into pods at runtime.
+    \item \textcolor{HUAblue}{\textbf{Future work:}} centralized secrets with HashiCorp Vault and user authentication via Keycloak (SSO).
+\end{itemize}
+\end{frame}
 
 }

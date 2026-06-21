@@ -1,25 +1,178 @@
 \newpage
 
+\section{Κεφάλαιο 3: Αυτοματοποίηση υποδομών και ασφάλεια}
 
-\section{Κεφάλαιο 3: Αυτοματοποίηση Υποδομών \& Ασφάλεια (Automation - 10\%)}
-
-
-
-\subsection{Υποδομή ως Κώδικας με OpenTofu}
-
-Παραμετροποίηση πόρων στο Microsoft Azure (VMs, Networking).
-
-\subsection{Αυτοματοποιημένη Εγκατάσταση με Ansible}
-
-Provisioning του MicroK8s και βασικών εξαρτήσεων (Dependencies).
-
-\subsection{Διαχείριση Μυστικών \& Ταυτοτήτων}
-
-\subsubsection{Κεντρική διαχείριση κωδικών (Vault / External Secrets)}
-
-\subsubsection{Αυθεντικοποίηση χρηστών μέσω Keycloak (SSO)}
+Το παρόν κεφάλαιο παρουσιάζει τον τρόπο με τον οποίο η υποδομή που περιγράφηκε στο προηγούμενο κεφάλαιο δημιουργείται και ρυθμίζεται με αυτοματοποιημένο, αναπαραγώγιμο τρόπο: από τη δημιουργία της εικονικής μηχανής στο \textit{Azure} μέσω \textit{Infrastructure as Code} (\textit{OpenTofu}), έως τη ρύθμιση του λογισμικού και των υπηρεσιών εντός αυτής μέσω \textit{configuration management} (\textit{Ansible}), και την κεντρική διαχείριση των ευαίσθητων δεδομένων του συστήματος (\textit{HashiCorp Vault}).
 
 
+\subsection{\textit{Infrastructure as Code} με \textit{OpenTofu}}
+
+Η δημιουργία της εικονικής μηχανής στο \textit{Microsoft Azure} δεν πραγματοποιήθηκε χειροκίνητα μέσω του \textit{Azure Portal}, αλλά μέσω \textit{OpenTofu} --- ανοιχτού κώδικα \textit{fork} του \textit{Terraform} --- ώστε ολόκληρη η υποδομή να ορίζεται δηλωτικά (\textit{declarative}) σε αρχεία κώδικα, εκδοχοποιημένα στο σύστημα ελέγχου εκδόσεων. Η προσέγγιση αυτή (\textit{Infrastructure as Code}) εξασφαλίζει ότι η υποδομή είναι αναπαραγώγιμη: σε περίπτωση καταστροφής ή ανάγκης δημιουργίας νέου περιβάλλοντος, η εκτέλεση των ίδιων αρχείων παράγει πανομοιότυπο αποτέλεσμα, χωρίς εξάρτηση από τη μνήμη ή τις χειροκίνητες ενέργειες κάποιου διαχειριστή.
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=0.8\textwidth]{project/report/figures/tofu-apply.jpg}
+   \caption{Ροή IaC: OpenTofu provisioning}
+   \label{fig:iac}
+ \end{figure}
+ \newpage
+Ο ορισμός της εικονικής μηχανής περιλαμβάνει το μέγεθος, το λειτουργικό σύστημα, και τον τρόπο πρόσβασης μέσω κλειδιού \textit{SSH}:
+
+\begin{lstlisting}[language=terraform, caption={Ορισμός Azure Virtual Machine σε Terraform}]
+resource "azurerm_linux_virtual_machine" "vm" {
+  name                  = "${var.prefix}-vm"
+  resource_group_name   = azurerm_resource_group.rg.name
+  location              = azurerm_resource_group.rg.location
+  size                  = var.vm_size
+  admin_username        = var.admin_username
+  network_interface_ids = [azurerm_network_interface.nic.id]
+
+  admin_ssh_key {
+    username   = var.admin_username
+    public_key = file(pathexpand(var.ssh_public_key_path))
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "StandardSSD_LRS"
+    disk_size_gb         = 64
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
+    version   = "latest"
+  }
+}
+\end{lstlisting}
+
+Η πρόσβαση στο \textit{virtual machine} γίνεται αποκλειστικά μέσω ζεύγους κλειδιών \textit{SSH} (\texttt{admin\_ssh\_key}), χωρίς να ορίζεται κωδικός πρόσβασης --- πρακτική που μειώνει σημαντικά την επιφάνεια επίθεσης σε σχέση με \textit{password-based} πρόσβαση.
+
+Η ασφάλεια σε επίπεδο δικτύου ρυθμίζεται μέσω \textit{Network Security Group} (\textit{NSG}), όπου ορίζονται ρητά οι επιτρεπόμενες θύρες εισερχόμενης κίνησης:
+
+\begin{lstlisting}[language=terraform, numbers=none, caption={Security Rule για το Kubernetes NodePort}]
+security_rule {
+  name                       = "K8sNodePorts"
+  priority                   = 1004
+  direction                  = "Inbound"
+  access                     = "Allow"
+  protocol                   = "Tcp"
+  destination_port_range     = "30000-32767"
+  source_address_prefix      = "*"
+  destination_address_prefix = "*"
+}
+\end{lstlisting}
+
+\newpage
+Το συγκεκριμένο εύρος θυρών (\texttt{30000-32767}) αντιστοιχεί στο προεπιλεγμένο εύρος που χρησιμοποιεί το \textit{Kubernetes} για υπηρεσίες τύπου \textit{NodePort} (\textit{Jenkins}, \textit{ArgoCD}, \textit{MinIO}, κ.ά.), και ορίστηκε \textit{εκ των προτέρων} στο επίπεδο της υποδομής, ώστε να μην απαιτείται μεταγενέστερη χειροκίνητη τροποποίηση του \textit{firewall} κάθε φορά που εκτίθεται νέα υπηρεσία.
+
+Τέλος, η υποδομή περιλαμβάνει έναν μηχανισμό αυτόματου τερματισμού της εικονικής μηχανής (\texttt{azurerm\_dev\_test\_global\_vm\_shutdown\_schedule}) στις 23:00 κάθε ημέρα, ως πρακτική περιορισμού κόστους (\textit{FinOps}) για περιβάλλον ανάπτυξης που δεν απαιτεί συνεχή 24-ωρη λειτουργία. Παρακάτω φαίνεται το tofu list εφόσον είχε γίνει το provisioning: 
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=1.0\textwidth]{project/report/figures/tofu-state-list.png}
+   \caption{Αποτέλεσμα του OpenTofu provisioning}
+   \label{fig:iac}
+ \end{figure}
+
+
+\subsection{Αυτοματοποιημένη εγκατάσταση με \textit{Ansible}}
+
+Ενώ το \textit{OpenTofu} είναι υπεύθυνο για τη δημιουργία της υποδομής (το «κέλυφος» --- εικονική μηχανή, δίκτυο, \textit{firewall}), η ρύθμιση του λογισμικού \textit{εντός} αυτής της υποδομής αυτοματοποιείται μέσω \textit{Ansible}. Η επιλογή δύο διαφορετικών εργαλείων για τα δύο αυτά επίπεδα --- αντί ενός μόνο εργαλείου --- αντικατοπτρίζει τον διαφορετικό χαρακτήρα των δύο εργασιών: το \textit{OpenTofu} διαχειρίζεται πόρους cloud παρόχου μέσω \textit{API} κλήσεων, ενώ το \textit{Ansible} εκτελεί ακολουθίες εντολών \textit{εντός} ήδη υπάρχοντος μηχανήματος.
+
+Η αυτοματοποίηση είναι οργανωμένη σε επτά ανεξάρτητους \textit{roles}, καθένας υπεύθυνος για μία διακριτή πτυχή του περιβάλλοντος: εγκατάσταση του \textit{Docker} και του \textit{MicroK8s} (\texttt{base-setup}), εγκατάσταση και ρύθμιση του \textit{HashiCorp Vault} (\texttt{vault}), εγκατάσταση του \textit{Prometheus} και \textit{Grafana} (\texttt{monitoring}), εγκατάσταση του \textit{Jenkins} (\texttt{jenkins}), εγκατάσταση του \textit{ArgoCD} (\texttt{argocd}), ενεργοποίηση του \textit{Knative} και εγκατάσταση του \textit{MinIO Client} (\texttt{knative}), και εγκατάσταση εργαλείου εκτίμησης κόστους (\texttt{infracost}).
+
+Κάθε εργασία (\textit{task}) έχει σχεδιαστεί ώστε να είναι \textit{idempotent}: η επανεκτέλεσή της δεν προκαλεί σφάλμα ή ανεπιθύμητη επανάληψη ενέργειας, αν το επιθυμητό αποτέλεσμα έχει ήδη επιτευχθεί. Ενδεικτικά, η εγκατάσταση του \textit{MinIO Client} ελέγχει πρώτα την ύπαρξη του εκτελέσιμου αρχείου, και προχωράει στη λήψη του μόνο αν αυτό λείπει:
+\newpage
+\begin{lstlisting}[language=yaml, caption={Ansible task για την εγκατάσταση του MinIO Client}]
+- name: Check if mc binary already exists
+  stat:
+    path: "{{ mc_install_path }}"
+  register: mc_binary
+
+- name: Download MinIO Client (mc) binary
+  get_url:
+    url: "{{ mc_download_url }}"
+    dest: "{{ mc_install_path }}"
+    mode: "0755"
+  when: not mc_binary.stat.exists
+\end{lstlisting}
+
+Η ιδιότητα αυτή είναι ιδιαίτερα σημαντική στο πλαίσιο της εργασίας, καθώς η εικονική μηχανή τερματίζεται και επανεκκινείται συχνά (μέσω \texttt{az vm deallocate} / \texttt{az vm start}, για λόγους περιορισμού κόστους), και το \textit{playbook} πρέπει να μπορεί να εκτελεστεί ξανά με ασφάλεια μετά από κάθε επανεκκίνηση, χωρίς να απαιτείται διάκριση μεταξύ «πρώτης εκτέλεσης» και «επανεκτέλεσης». Στην παρακάτω εικόνα βλέπουμε το ansible μετά το run που έγινε συνολικά για όλα τα roles, αλλά και για το vault: 
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=1.0\textwidth]{project/report/figures/ansible-playbook-vault-run.png}
+   \caption{Ansible: Run the playbook για κάθε role}
+   \label{fig:ansible}
+ \end{figure}
+
+\newpage
+\subsection{Διαχείριση των \textit{secrets} με \textit{HashiCorp Vault}}
+
+Η διαχείριση ευαίσθητων δεδομένων --- διαπιστευτήρια βάσης δεδομένων, κλειδιά πρόσβασης σε αποθηκευτικό χώρο, κωδικοί πρόσβασης διαχειριστή --- αποτελεί κρίσιμη πτυχή κάθε σύγχρονης cloud-native εφαρμογής. Η εναλλακτική προσέγγιση, η αποθήκευση αυτών των τιμών απευθείας μέσα στα αρχεία ρύθμισης (\textit{manifests}) ή στον πηγαίο κώδικα, εκθέτει τα μυστικά αυτά σε καθαρό κείμενο, ορατό σε όποιον έχει πρόσβαση στο αποθετήριο \textit{Git} --- ανεξάρτητα από το αν το αποθετήριο είναι δημόσιο ή ιδιωτικό.
+
+Για τον λόγο αυτό, το σύστημα χρησιμοποιεί το \textit{HashiCorp Vault} ως κεντρικό σημείο αποθήκευσης όλων των ευαίσθητων τιμών: διαπιστευτήρια σύνδεσης στη \textit{MongoDB}, κλειδιά πρόσβασης στο \textit{MinIO}, κωδικός διαχειριστή του \textit{ArgoCD}, και διαπιστευτήρια του \textit{RabbitMQ}. Το \textit{Vault} χρησιμοποιεί μόνιμη αποθήκευση σε αρχείο (\textit{file storage}), προστατευμένη μέσω μηχανισμού \textit{Shamir seal} --- η αποκρυπτογράφηση των δεδομένων απαιτεί την παροχή κλειδιού αποσφράγισης (\textit{unseal key}) πριν το \textit{Vault} μπορέσει να εξυπηρετήσει οποιοδήποτε αίτημα ανάγνωσης ή εγγραφής.
+
+Η πρόσβαση των εφαρμογών στα μυστικά δεν γίνεται μέσω σταθερού \textit{token}, αλλά μέσω του μηχανισμού \textit{Kubernetes authentication} του \textit{Vault}: κάθε \textit{pod} αποδεικνύει την ταυτότητά του μέσω του δικού του \textit{service account token}, και το \textit{Vault} του παραχωρεί πρόσβαση μόνο στα μυστικά που επιτρέπει η αντίστοιχη πολιτική (\textit{policy}) που έχει ανατεθεί στον ρόλο του.
+
+Η ενσωμάτωση αυτή πραγματοποιείται μέσω του \textit{Vault Agent Injector}: το \textit{pod} του \textit{backend} φέρει συγκεκριμένες επισημειώσεις (\textit{annotations}) που ενεργοποιούν αυτόματη εισαγωγή ενός δεύτερου, βοηθητικού \textit{container} (\textit{sidecar}) μέσα στο ίδιο \textit{pod}. Αυτός ο \textit{sidecar} αυθεντικοποιείται στο \textit{Vault}, ανακτά τα μυστικά, και τα γράφει σε ένα αρχείο εντός κοινού, εφήμερου χώρου αποθήκευσης (\textit{volume}) που μοιράζονται και τα δύο \textit{containers} του \textit{pod}. Ο κώδικας του \textit{backend} διαβάζει αυτό το αρχείο κατά την εκκίνησή του, με ασφαλή \textit{fallback} σε μεταβλητές περιβάλλοντος αν το αρχείο δεν υπάρχει:
+
+\begin{lstlisting}[language=terraform, caption={Φόρτωση μυστικών από το Vault με fall-back}]
+let vaultSecrets = {};
+try {
+  const raw = fs.readFileSync("/vault/secrets/config", "utf8");
+  vaultSecrets = JSON.parse(raw);
+} catch (err) {
+  console.log("Vault secrets not found, falling back to environment variables");
+}
+
+const MONGO_URI = vaultSecrets.mongo_uri || process.env.MONGO_URI;
+\end{lstlisting}
+
+Το αρχείο \texttt{/vault/secrets/config} που διαβάζει ο παραπάνω κώδικας δεν δημιουργείται από το ίδιο το \textit{backend}, αλλά από τον \textit{Vault Agent Injector}: ένα \textit{sidecar container} που τρέχει στο ίδιο \textit{pod}, αυθεντικοποιείται αυτόματα στο \textit{Vault} μέσω του \textit{Kubernetes Service Account} του \textit{pod}, ανακτά τα μυστικά από τη διαδρομή (\textit{path}) \texttt{secret/fabric}, και τα γράφει τοπικά σε αυτό το αρχείο πριν ακόμα ξεκινήσει η εφαρμογή. Το \textit{try/catch} εξασφαλίζει ότι η εφαρμογή παραμένει λειτουργική και σε περιβάλλον όπου ο \textit{Vault} δεν είναι διαθέσιμος (π.χ. τοπική ανάπτυξη), επιστρέφοντας στις παραδοσιακές μεταβλητές περιβάλλοντος.
+\newpage
+Τα μυστικά αυτά --- η διεύθυνση σύνδεσης στη \textit{MongoDB}, τα κλειδιά πρόσβασης στο \textit{MinIO}, και τα διαπιστευτήρια του \textit{RabbitMQ} --- είναι ορατά μέσω του \textit{web UI} του \textit{Vault}, όπως φαίνεται στην \autoref{fig:vault-ui}, αποθηκευμένα κεντρικά αντί να βρίσκονται \textit{hardcoded} ή διασκορπισμένα σε πολλαπλά αρχεία ρυθμίσεων.
+
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=0.8\textwidth]{project/report/figures/vault-ui.png}
+   \caption{HashiCorp Vault: αποθηκευμένα μυστικά εφαρμογής στο \textit{path} \texttt{secret/fabric}}
+  \label{fig:vault-ui}
+ \end{figure}
+
+Η ροή αυτή απεικονίζεται στο σχήμα παρακάτω σχήμα: το \textit{Ansible} γράφει τις τιμές στο \textit{Vault} κατά την αρχική ρύθμιση, ο \textit{sidecar} τις ανακτά σε κάθε εκκίνηση του \textit{pod}, και το \textit{backend} τις διαβάζει μέσω κοινού αρχείου.
+
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.5cm, 
+    box/.style={
+        rectangle, rounded corners=4pt, 
+        draw=black!30, thick,
+        minimum width=3.2cm, minimum height=1.4cm, 
+        align=center, font=\small\sffamily,
+        drop shadow={opacity=0.2}
+    },
+    arr/.style={-{Stealth[length=4mm]}, line width=1pt, draw=black!70}
+]
+
+\node[box, fill=archBlue] (ansible) {Ansible\\(\textit{secrets.yml})};
+\node[box, fill=archTeal, right=of ansible] (vault) {Vault\\(\texttt{secret/fabric})};
+\node[box, fill=archAmber, right=of vault] (sidecar) {\textit{vault-agent}\\(\textit{sidecar})};
+\node[box, fill=archCoral, right=of sidecar] (backend) {\textit{backend}\\(\textit{container})};
+
+% Arrows
+\draw[arr] (ansible) -- node[above, font=\scriptsize\sffamily] {\textit{vault kv put}} (vault);
+\draw[arr] (vault) -- node[above, font=\scriptsize\sffamily] {auth + fetch} (sidecar);
+\draw[arr] (sidecar) -- node[above, font=\scriptsize\sffamily] {shared file} (backend);
+
+\end{tikzpicture}
+\end{center}
+
+Η αυτοματοποίηση της υποδομής και η ασφαλής διαχείριση των μυστικών της εφαρμογής, όπως παρουσιάστηκαν στο παρόν κεφάλαιο, αποτελούν το θεμέλιο πάνω στο οποίο λειτουργούν οι διαδικασίες συνεχούς ολοκλήρωσης και ανάπτυξης που εξετάζονται στο επόμενο κεφάλαιο: χωρίς αναπαραγώγιμη υποδομή και ασφαλή διαχείριση διαπιστευτηρίων, η αυτοματοποιημένη ανάπτυξη νέου κώδικα θα ήταν τόσο επικίνδυνη όσο και η χειροκίνητη.
 
 
 
