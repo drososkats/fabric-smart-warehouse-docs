@@ -1,18 +1,174 @@
 \newpage
 
-\section{Παρακολούθηση, Κλιμάκωση \& SLAs (SLAs - 15\%)}
+\section{Κεφάλαιο 7: Παρακολούθηση, κλιμάκωση και SLAs}
 
-Σκοπός: Το Engineering "Proof". Δείχνεις μετρήσεις και διαγράμματα.
+Η ανθεκτικότητα του κώδικα και η αυτοματοποίηση της ανάπτυξης, όπως παρουσιάστηκαν στα προηγούμενα κεφάλαια, δεν αρκούν από μόνες τους για να εγγυηθούν ότι το σύστημα ανταποκρίνεται στις απαιτήσεις φόρτου που μπορεί να αντιμετωπίσει στην πράξη. Το παρόν κεφάλαιο παρουσιάζει τον τρόπο με τον οποίο το σύστημα παρακολουθείται σε πραγματικό χρόνο, τον μηχανισμό αυτόματης κλιμάκωσης που ανταποκρίνεται σε αυξημένο φόρτο, και τα αποτελέσματα πειραματικών δοκιμών φόρτου που οδήγησαν στον καθορισμό συγκεκριμένων, μετρήσιμων επιπέδων ποιότητας υπηρεσίας (\textit{SLA}).                          
+
+\subsection{Οπτικοποίηση και μετρικές (\textit{Observability}): \textit{Prometheus} \& \textit{Grafana}}
+
+Η παρακολούθηση της απόδοσης ενός συστήματος εν λειτουργία προϋποθέτει τη συλλογή και την οπτικοποίηση μετρικών σε πραγματικό χρόνο. Για τον σκοπό αυτό εγκαταστάθηκε ο συνδυασμός \textit{Prometheus} (συλλογή και αποθήκευση μετρικών χρονοσειρών) και \textit{Grafana} (οπτικοποίηση), μέσω του πακέτου \textit{kube-prometheus-stack}, αυτοματοποιημένου μέσω \textit{Ansible}.
+
+Οι μετρικές που παρακολουθούνται περιλαμβάνουν τη χρήση επεξεργαστή (\textit{CPU}) και μνήμης (\textit{memory}) ανά \textit{pod}, καθώς και τον αριθμό αιτημάτων \textit{HTTP} που εξυπηρετούνται από τον \textit{backend}. Αυτές οι δύο κατηγορίες μετρικών αποτελούν τη βάση για τις αποφάσεις αυτόματης κλιμάκωσης που περιγράφονται στην επόμενη ενότητα. Η \autoref{fig:grafana} δείχνει ένα προσαρμοσμένο \textit{dashboard} που παρακολουθεί ειδικά τη χρήση \textit{CPU} και μνήμης του \textit{backend} \textit{pod}, καθώς και του \textit{sidecar container} του \textit{Vault Agent}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/grafana-dashboard-backend.png}
+  \caption{\textit{Grafana}: προσαρμοσμένο \textit{dashboard} παρακολούθησης \textit{CPU} και μνήμης}
+  \label{fig:grafana}
+\end{figure}
+
+\newpage
+Η μετρική χρήσης \textit{CPU} που τροφοδοτεί τις αποφάσεις αυτόματης κλιμάκωσης (\autoref{sec:hpa}) ανακτάται μέσω \textit{PromQL} που φιλτράρει αποκλειστικά τα \textit{pods} του \textit{backend}:
+
+\begin{lstlisting}[language=yaml, caption={PromQL query για τη χρήση CPU του backend}]
+container_cpu_usage_seconds_total{pod=~"fabric-backend.*", container="backend"}
+\end{lstlisting}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{project/report/figures/grafana-dashboard-backend-cpu-custom-settings.png}
+  \caption{\textit{Grafana}: προβολή επεξεργασίας (\textit{edit panel}) του ερωτήματος \textit{PromQL} για τη χρήση \textit{CPU} του \textit{backend}}
+  \label{fig:grafana-promql}
+\end{figure}
+
+Πέρα από τις μετρικές ανά \textit{pod}, είναι χρήσιμο να επιβεβαιωθεί και η συνολική κατάσταση της εικονικής μηχανής που φιλοξενεί ολόκληρο το \textit{cluster}. Για τον σκοπό αυτό χρησιμοποιήθηκε το έτοιμο (\textit{community}) \textit{dashboard} \textit{"Node Exporter Full"}, το οποίο παρέχει μια συνολική εικόνα χρήσης \textit{CPU}, μνήμης, δικτύου, και αποθηκευτικού χώρου σε επίπεδο κόμβου (\textit{node-level}), ανεξάρτητα από τον καταμερισμό σε επιμέρους \textit{pods} - (Εικόνα \ref{fig:node-exporter}). Όπως φαίνεται, η συνολική χρήση παραμένει σε υγιή επίπεδα (\textit{CPU} 9.4\%, μνήμη 49.9\%) παρά το γεγονός ότι η εικονική μηχανή φιλοξενεί ταυτόχρονα το σύνολο των υπηρεσιών του συστήματος --- \textit{Jenkins}, \textit{ArgoCD}, \textit{Vault}, και την ίδια την εφαρμογή.
+
+\newpage
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{project/report/figures/grafana-dashboard.png}
+  \caption{\textit{Grafana}: \textit{dashboard "Node Exporter Full"} --- συνολική χρήση πόρων της εικονικής μηχανής \texttt{fabric-vm}}
+  \label{fig:node-exporter}
+\end{figure}
 
 
-\subsection{Οπτικοποίηση και Μετρικές (Observability): Εγκατάσταση Prometheus \& Grafana. Παρακολούθηση CPU/Memory και HTTP Requests}
+\subsection{Αυτόματη κλιμάκωση (\textit{HPA --- Horizontal Pod Autoscaler})}
+\label{sec:hpa}
 
-\subsection{Αυτόματη Κλιμάκωση (HPA - Horizontal Pod Autoscaler): Διασύνδεση των μετρικών με δυναμική δημιουργία Pods}
+Με βάση τις μετρικές χρήσης πόρων που συλλέγονται από το \textit{Prometheus}, το \textit{backend} είναι ρυθμισμένο με \textit{Horizontal Pod Autoscaler}: όταν η μέση χρήση πόρων των υπαρχόντων αντιτύπων (\textit{replicas}) υπερβαίνει προκαθορισμένο όριο, το \textit{Kubernetes} δημιουργεί αυτόματα νέα αντίτυπα, μέχρι ένα ανώτατο όριο, κατανέμοντας τον εισερχόμενο φόρτο. Όταν ο φόρτος υποχωρεί, ο αριθμός των αντιτύπων μειώνεται ανάλογα, μέχρι ένα ελάχιστο όριο που διασφαλίζει συνεχή διαθεσιμότητα.
 
-\subsection{Πειραματικές Μετρήσεις \& Load Testing: Γένεση φόρτου (Load generation) στην εφαρμογή}
+\begin{lstlisting}[language=yaml, caption={HorizontalPodAutoscaler manifest για το backend}]
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fabric-backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fabric-backend
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+\end{lstlisting}
 
-\subsection{Καθορισμός Επιπέδων Ποιότητας Υπηρεσίας (SLA Levels)}
+Η ρύθμιση αυτή ορίζει δύο ανεξάρτητες μετρικές αναφοράς, και όχι μόνο \textit{CPU}: το \textit{Kubernetes} υπολογίζει τον επιθυμητό αριθμό αντιτύπων ξεχωριστά για κάθε μετρική (\textit{CPU} στο 50\% μέσης χρήσης, μνήμη στο 70\%) και υιοθετεί το \textbf{μεγαλύτερο} από τα δύο αποτελέσματα --- διασφαλίζοντας έτσι κλιμάκωση ακόμα και σε σενάρια όπου η πίεση προέρχεται κυρίως από τη μνήμη, χωρίς αντίστοιχη αύξηση στη χρήση \textit{CPU} (όπως θα συνέβαινε, για παράδειγμα, σε ταυτόχρονη επεξεργασία πολλών μεγάλων αρχείων εικόνας). Ο αριθμός των αντιτύπων κυμαίνεται μεταξύ ενός ελάχιστου αντιτύπου, για συνεχή διαθεσιμότητα της υπηρεσίας, και πέντε αντιτύπων, ως ανώτατο όριο κλιμάκωσης.
 
-\subsubsection {Ανάλυση Κατανομής (π.χ. 99\% CDF)}
+Ο μηχανισμός αυτός λειτουργεί αξιόπιστα ακριβώς επειδή ο \textit{backend} είναι σχεδιασμένος ως \textit{stateless}, βλ. Κεφάλαιο 5): κάθε νέο αντίτυπο μπορεί να εξυπηρετήσει αμέσως αιτήματα, χωρίς ανάγκη συγχρονισμού κατάστασης με τα υπάρχοντα αντίτυπα.
 
-\subsubsection{Ορισμός Κλάσεων SLA (Gold, Silver, Bronze) βάσει χρόνου απόκρισης}
+
+\subsection{Πειραματικές μετρήσεις και \textit{load testing}}
+
+Για την παραγωγή ελεγχόμενου φόρτου χρησιμοποιήθηκε το εργαλείο \textit{k6}, με ξεχωριστά σενάρια δοκιμής για τις δύο κύριες λειτουργίες του \textit{API}: ανάκτηση των προϊόντων (\texttt{GET /api/products}) και δημιουργία νέου προϊόντος (\texttt{POST /api/products}). Κάθε σενάριο κλιμακώνει σταδιακά τον αριθμό ταυτόχρονων εικονικών χρηστών (\textit{virtual users}) σε πολλαπλά στάδια, προσομοιώνοντας ρεαλιστική αυξομείωση φόρτου, με περίοδο ελεγχόμενης αποκλιμάκωσης (\textit{graceful ramp-down}) στο τέλος κάθε δοκιμής.
+
+Το σενάριο \texttt{GET} έφτασε έως 100 ταυτόχρονους χρήστες, με 6.823 συνολικά αιτήματα και μηδενικό ποσοστό αποτυχίας:
+
+\begin{lstlisting}[language=yaml, caption={Αποτελέσματα μέτρησης απόδοσης (Load Test Metrics)}]
+http_req_duration: avg=11.23ms p(95)=14.2ms p(99)=23.2ms
+http_req_failed:   0.00% (0 out of 6823)
+\end{lstlisting}
+
+\newpage
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{project/report/figures/k6-finish.png}
+  \caption{Αποτελέσματα δοκιμής φόρτου \textit{k6} για το \textit{endpoint} \texttt{GET /api/products}: 6.823 αιτήματα, \texttt{p(95)=14.2ms}, μηδενικό ποσοστό αποτυχίας}
+  \label{fig:k6get}
+\end{figure}
+
+Το σενάριο \texttt{POST}, λόγω της επιπλέον επιβάρυνσης από την εγγραφή στη βάση δεδομένων και τη μεταφόρτωση αρχείου στο \textit{MinIO}, έφτασε έως 20 ταυτόχρονους χρήστες, με 1.018 συνολικά αιτήματα και εξίσου μηδενικό ποσοστό αποτυχίας:
+
+\begin{lstlisting}[language=yaml, caption={Αποτελέσματα μέτρησης απόδοσης για το σύστημα}]
+http_req_duration: avg=70.85ms p(95)=80.13ms p(99)=156.76ms
+http_req_failed:   0.00% (0 out of 1018)
+\end{lstlisting}
+
+\newpage
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{project/report/figures/k6-finish-post--finish.png}
+  \caption{Αποτελέσματα δοκιμής φόρτου \textit{k6} για το \textit{endpoint} \texttt{POST /api/products}: 1.018 αιτήματα, \texttt{p(95)=80.13ms}, μηδενικό ποσοστό αποτυχίας}
+  \label{fig:k6post}
+\end{figure}
+
+Αξίζει να σημειωθεί ένας περιορισμός που εντοπίστηκε κατά τη διάρκεια προγενέστερων δοκιμών: σε σενάριο όπου η βάση δεδομένων είχε ήδη συγκεντρώσει μεγάλο αριθμό δοκιμαστικών εγγραφών (από επαναλαμβανόμενες εκτελέσεις του ίδιου \textit{load test}), ο χρόνος απόκρισης του \texttt{GET /api/products} υποβαθμίστηκε σημαντικά υπό υψηλό φόρτο (\texttt{p(95)} στα όρια των \texttt{5} δευτερολέπτων στα 100 \textit{virtual users}), καθώς το \textit{endpoint} επιστρέφει το σύνολο των εγγραφών χωρίς \textit{pagination}. Σε περιβάλλον παραγωγής, η συμπεριφορά αυτή θα αντιμετωπιζόταν με την εφαρμογή \textit{pagination} ή \textit{caching} στο επίπεδο του \textit{API}, ώστε ο χρόνος απόκρισης να παραμένει ανεξάρτητος από το συνολικό μέγεθος της συλλογής δεδομένων.
+
+\newpage
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{project/report/figures/k6-finish-post-error.png}
+  \caption{Αποτελέσματα δοκιμής φόρτου \textit{k6} για το \textit{endpoint} \texttt{POST /api/products}: 1.018 αιτήματα, \texttt{p(95)=80.13ms}, μηδενικό ποσοστό αποτυχίας}
+  \label{fig:k6post}
+\end{figure}
+
+\subsection{Καθορισμός επιπέδων ποιότητας υπηρεσίας (\textit{SLA Levels})}
+
+Οι μετρήσεις απόδοσης που παρουσιάστηκαν στην προηγούμενη ενότητα αποκτούν πρακτική αξία μόνο όταν μεταφραστούν σε συγκεκριμένες, μετρήσιμες δεσμεύσεις ποιότητας υπηρεσίας: όχι απλά «το σύστημα είναι γρήγορο», αλλά «το 95\% των αιτημάτων ανάγνωσης απαντιέται σε λιγότερο από \textit{Χ} χρόνο». Η ενότητα αυτή περιγράφει τη μεθοδολογία ανάλυσης που οδήγησε σε αυτές τις δεσμεύσεις, και τον ορισμό τριών διαβαθμισμένων επιπέδων (\textit{Gold}, \textit{Silver}, \textit{Bronze}) βάσει των πραγματικών αποτελεσμάτων των δοκιμών φόρτου.
+
+\newpage
+\subsubsection{Ανάλυση κατανομής (\textit{99\% CDF})}
+
+Ο καθορισμός επιπέδων ποιότητας υπηρεσίας δεν βασίστηκε σε αυθαίρετες τιμές, αλλά στην πραγματική κατανομή των χρόνων απόκρισης που καταγράφηκαν κατά τις δοκιμές φόρτου. Η μετρική \texttt{p(95)} (95ο εκατοστημόριο) υποδεικνύει τον χρόνο απόκρισης κάτω από τον οποίο βρίσκεται το 95\% των αιτημάτων, ενώ η μετρική \texttt{p(99)} αντιστοιχεί στο αυστηρότερο όριο του 99\%. Η χρήση εκατοστημορίων, αντί του μέσου όρου (\textit{average}), αποτυπώνει πιο ρεαλιστικά την εμπειρία του χρήστη, καθώς δεν επηρεάζεται από μεμονωμένες ακραίες τιμές (\textit{outliers}) προς τη μία ή την άλλη κατεύθυνση.
+
+\subsubsection{Ορισμός κλάσεων \textit{SLA} (\textit{Gold, Silver, Bronze}) βάσει χρόνου απόκρισης}
+
+Με βάση τις μετρημένες τιμές \texttt{p(95)} και \texttt{p(99)} των δύο σεναρίων δοκιμής, ορίστηκαν τρεις κλάσεις ποιότητας υπηρεσίας, εφαρμόσιμες ανά τύπο λειτουργίας (\textit{GET} ή \textit{POST}):
+
+\begin{itemize}
+  \item \textbf{\textit{Gold}}: χρόνος απόκρισης \texttt{p(95) < 100ms} --- κατάλληλο επίπεδο για λειτουργίες ανάγνωσης (\textit{GET}), όπου η μετρημένη τιμή (\texttt{14.2ms}) βρίσκεται με μεγάλο περιθώριο εντός του ορίου.
+  \item \textbf{\textit{Silver}}: χρόνος απόκρισης \texttt{p(95) < 250ms} --- κατάλληλο επίπεδο για λειτουργίες εγγραφής (\textit{POST}) που περιλαμβάνουν μεταφόρτωση αρχείου, όπου η μετρημένη τιμή (\texttt{80.13ms}) βρίσκεται εντός του ορίου, αντικατοπτρίζοντας τη φυσικά υψηλότερη επιβάρυνση αυτής της λειτουργίας.
+  \item \textbf{\textit{Bronze}}: χρόνος απόκρισης \texttt{p(99) < 500ms} --- το ευρύτερο, εγγυημένο όριο για το σύνολο σχεδόν όλων (99\%) των αιτημάτων, ανεξαρτήτως τύπου, καλύπτοντας περιπτώσεις στιγμιαίας αυξημένης επιβάρυνσης.
+\end{itemize}
+
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    sla/.style={
+        rectangle, rounded corners=3pt, 
+        draw=black!20, thick,
+        minimum width=4cm, minimum height=1.8cm,
+        align=center, font=\small,
+        drop shadow={opacity=0.2}
+    }
+]
+    % Gold Service
+    \node[sla, fill=HUAblue!10, draw=HUAblue!50] (gold) 
+        {\textbf{Gold SLA} \\ \textit{p(95) < 100ms} \\ \color{darkgray}\footnotesize (measured: 14.2ms)};
+
+    % Silver Service
+    \node[sla, fill=gray!10, draw=gray!40, right=0.8cm of gold] (silver) 
+        {\textbf{Silver SLA} \\ \textit{p(95) < 250ms} \\ \color{darkgray}\footnotesize (measured: 80.13ms)};
+
+    % Bronze Service
+    \node[sla, fill=orange!10, draw=orange!40, right=0.8cm of silver] (bronze) 
+        {\textbf{Bronze SLA} \\ \textit{p(99) < 500ms} \\ \color{darkgray}\footnotesize (measured: 23.2--156.76ms)};
+\end{tikzpicture}
+\end{center}
+
+Συγκρίνοντας τα δύο σενάρια δοκιμής, παρατηρείται ότι η λειτουργία ανάγνωσης (\textit{GET}) διατηρεί χρόνο απόκρισης περίπου \textbf{5,6 φορές} μικρότερο από τη λειτουργία εγγραφής (\textit{POST}) στο \texttt{p(95)} (\texttt{14.2ms} έναντι \texttt{80.13ms}), διαφορά που αντικατοπτρίζει εύλογα τον πρόσθετο φόρτο εργασίας του \textit{POST} --- εγγραφή στη \textit{MongoDB} και μεταφόρτωση αρχείου στο \textit{MinIO} --- έναντι μιας απλής ανάκτησης δεδομένων. Και οι δύο λειτουργίες, ωστόσο, παραμένουν με μεγάλο περιθώριο εντός των αντίστοιχων ορίων \textit{SLA} που ορίστηκαν, επιβεβαιώνοντας ότι το σύστημα ανταποκρίνεται αξιόπιστα στον αναμενόμενο φόρτο, υπό τις συνθήκες δοκιμής που εξετάστηκαν. Τα τρία επίπεδα ποιότητας υπηρεσίας που ορίστηκαν σε αυτό το κεφάλαιο --- σε συνδυασμό με την παρακολούθηση σε πραγματικό χρόνο και την αυτόματη κλιμάκωση που παρουσιάστηκαν προηγουμένως --- συνθέτουν ένα πλήρες πλαίσιο διαχείρισης απόδοσης, ικανό όχι μόνο να μετρά τη συμπεριφορά του συστήματος, αλλά και να την εγγυάται με συγκεκριμένους, ποσοτικούς όρους.
+

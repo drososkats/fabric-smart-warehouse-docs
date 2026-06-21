@@ -1,24 +1,30 @@
-\section{Hybrid Cloud Deployment (Phase A)}
-
+\section{GitOps \& CI/CD}
 {
     \metroset{titleformat frame=smallcaps}
-\begin{frame}{Initial Implementation: Integrating Local Containers with Managed DBaaS}
 
-
-        \begin{itemize}
-            \item \textbf{Custom Docker Images:}: We created \textcolor{HUAblue}{\textbf{Dockerfiles}} for the Frontend and Backend to build our own custom images.
-            
-            \item \textbf{Docker-Compose Setup:}: We used a \textcolor{HUAblue}{\texttt{docker-compose}} file to run the Frontend and Backend containers together easily.
-            
-           \item \textbf{Kubernetes Infrastructure:} We created YAML manifests to set up RabbitMQ and MinIO as services inside the\textcolor{HUAblue}{\textbf{MicroK8s cluster}}.
-            
-            \item \textbf{Hybrid Database Connection:}: The Backend connects directly to MongoDB Atlas in the Public Cloud using a simple connection string in the \textcolor{HUAblue}{\textbf{.env}} file.
-            
-            \item \textbf{Proof of Concept}: System logs confirm that all parts (Docker, MicroK8s, and Atlas) communicate correctly.
-            
-        \end{itemize}
-
-
-
+% --- Slide 1 (words) ---
+\begin{frame}{From Manual Deployment to Automated GitOps}
+\begin{itemize}
+    \item \textbf{The old way:} custom Dockerfiles built by hand, \texttt{docker-compose} for local runs, and manifests applied manually with \texttt{kubectl}.
+    \item \textbf{The problem:} error-prone, not repeatable, and impossible to audit.
+    \item \textbf{The monorepo:} one repository holds the code, Dockerfiles and Kubernetes manifests together.
+    \item \textcolor{HUAblue}{\textbf{The goal:}} a single \texttt{git push} should take code all the way to the cluster, automatically.
+\end{itemize}
 \end{frame}
+
+% --- Slide 2 (words) ---
+\begin{frame}{The Pipeline: Jenkins (CI) and ArgoCD (CD)}
+\begin{itemize}
+    \item \textbf{Continuous Integration -- Jenkins:} on every push, a \texttt{Jenkinsfile} runs tests, builds the Docker images and pushes them to Docker Hub.
+    \item \textbf{Continuous Delivery -- ArgoCD:} ArgoCD watches the Git repository and automatically syncs the cluster to match it.
+    \item \textcolor{HUAblue}{\textbf{GitOps principle:}} Git is the single source of truth -- whatever is in Git is what runs in the cluster.
+\end{itemize}
+\end{frame}
+
+% --- Slide 3 (diagram) ---
+\begin{frame}{The GitOps Pipeline, End to End}
+    \centering
+    %\includegraphics[width=\textwidth]{figures/cicd-pipeline}
+\end{frame}
+
 }

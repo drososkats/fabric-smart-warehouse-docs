@@ -1,22 +1,159 @@
 
 \newpage
-\section{Κεφάλαιο 2: Αρχιτεκτονική Σεναρίου \& Χρήση Υπηρεσιών (20\%)}
+\section{Κεφάλαιο 2: Αρχιτεκτονική σεναρίου και χρήση υπηρεσιών}
 
+Το παρόν κεφάλαιο παρουσιάζει το σχεδιασμό της αρχιτεκτονικής σε επίπεδο συστήματος (\textit{high-level design}): το σενάριο χρήσης και τη ροή δεδομένων που το υλοποιεί, την εξέλιξη από την προηγούμενη, τοπική αρχιτεκτονική στη σημερινή cloud-native μορφή, και την ανάλυση των επιμέρους μικρουπηρεσιών που απαρτίζουν το σύστημα.
 Σκοπός: Το high-level design. Εδώ μπαίνουν τα διαγράμματα που συζητούσαμε.
 
 
-\subsection{Το Σενάριο: Smart Warehouse ERP}
+\subsection{Το σενάριο: \textit{Smart Warehouse ERP}}
 
-Επιχειρηματική λογική και ροή δεδομένων.
+Το σύστημα υλοποιεί ένα σενάριο διαχείρισης αποθήκης, όπου η κεντρική επιχειρηματική ενέργεια είναι η προσθήκη νέου προϊόντος. Η ροή δεδομένων που ακολουθείται είναι η εξής: ο χρήστης υποβάλλει τα στοιχεία του προϊόντος (όνομα, κατηγορία, τιμή, απόθεμα) μαζί με μια εικόνα, μέσω του \textit{frontend}. Το \textit{backend} παραλαμβάνει το αίτημα, ελέγχει αν πρόκειται για διπλή υποβολή μέσω μηχανισμού \textit{idempotency}, και στη συνέχεια αποθηκεύει την εικόνα απευθείας στο \textit{MinIO} (\textit{object storage}), αντί να την περάσει ως μέρος του μηνύματος προς τις επόμενες υπηρεσίες.
 
-\subsection{Εξέλιξη Αρχιτεκτονικής (Evolution)}
+Μόλις ολοκληρωθεί η αποθήκευση, το \textit{backend} καταγράφει το νέο προϊόν στη βάση δεδομένων (\textit{MongoDB}) και αποστέλλει ένα ελαφρύ μήνυμα ειδοποίησης --- που περιέχει μόνο την αναφορά (\textit{URL}) της εικόνας, όχι το ίδιο το αρχείο --- στην ουρά μηνυμάτων \textit{RabbitMQ}. Το μήνυμα αυτό καταναλώνεται από το \textit{Node-RED}, όπου προσομοιώνονται περιβαλλοντικές τιμές (θερμοκρασία, υγρασία) που αντιστοιχούν στις συνθήκες αποθήκευσης του προϊόντος, και απεικονίζονται σε \textit{dashboard} παρακολούθησης.
 
-Από το Local Monolith στο Cloud-Native.
+Παράλληλα, η αποθήκευση της εικόνας στο \textit{MinIO} λειτουργεί ως σημείο ενεργοποίησης (\textit{trigger}) για μια \textit{serverless} συνάρτηση (\textit{Knative}), η οποία παράγει αυτόματα μικρογραφία (\textit{thumbnail}) της εικόνας, χωρίς να απαιτείται μόνιμα ενεργό \textit{compute} για αυτή τη λειτουργία.
+
+\begin{center}
+\begin{tikzpicture}[
+    box/.style={
+        rectangle, rounded corners, draw=black!60, thick,
+        minimum width=2.4cm, minimum height=1.1cm,
+        align=center, font=\small
+    },
+    arr/.style={-{Stealth[length=2.5mm]}, thick}
+]
+\node[box, fill=archBlue] (user) {User};
+\node[box, fill=archBlue, right=0.7cm of user] (backend) {\textit{Backend}\\(\textit{idempotency})};
+\node[box, fill=archTeal, above right=0.5cm and 0.7cm of backend] (minio) {\textit{MinIO}};
+\node[box, fill=archTeal, below right=0.5cm and 0.7cm of backend] (mongo) {\textit{MongoDB}};
+\node[box, fill=archAmber, right=1.8cm of backend] (rabbit) {\textit{RabbitMQ}};
+\node[box, fill=archAmber, right=0.7cm of rabbit] (nodered) {\textit{Node-RED}};
+\node[box, fill=archAmber, below=0.6cm of nodered] (thingsboard) {\textit{ThingsBoard}};
+\node[box, fill=archCoral, right=1.7cm of minio] (knative) {\textit{Knative}\\(\textit{thumbnail})};
+
+\draw[arr] (user) -- (backend);
+\draw[arr] (backend) -- (minio);
+\draw[arr] (backend) -- (mongo);
+\draw[arr] (backend) -- (rabbit);
+\draw[arr] (rabbit) -- (nodered);
+\draw[arr] (nodered) -- (thingsboard);
+\draw[arr, dashed] (minio) -- (knative);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\subsection{Εξέλιξη αρχιτεκτονικής (\textit{Evolution})}
+Η αρχιτεκτονική του συστήματος δεν προέκυψε από το μηδέν, αλλά αποτελεί την εξέλιξη μιας ήδη \textit{containerized} εφαρμογής. Σε προηγούμενη εργασία, η εφαρμογή είχε ήδη μεταφερθεί σε \textit{containerized} μορφή μέσω \textit{Docker} και αναπτυχθεί σε \textit{MicroK8s}, εγκατεστημένο τοπικά στο μηχάνημα ανάπτυξης.
+
+Το παρόν στάδιο εξέλιξης --- αντικείμενο της παρούσας εργασίας --- δεν αγγίζει την επιχειρηματική λογική της εφαρμογής, αλλά αναδιαμορφώνει πλήρως τον τρόπο με τον οποίο αυτή παρέχεται, λειτουργεί, και συντηρείται. Συγκεκριμένα, η μετάβαση αυτή επιφέρει τις ακόλουθες αλλαγές:
+
+\begin{itemize}
+    \item \textbf{Υποδομή:} Από τοπικό \textit{MicroK8s} στο μηχάνημα ανάπτυξης, σε εικονική μηχανή στο \textit{Azure}, με την υποδομή να παρέχεται μέσω \textit{Infrastructure as Code} (\textit{OpenTofu}) αντί για χειροκίνητη εγκατάσταση.
+    
+    \item \textbf{Διαχείριση ρυθμίσεων:} Η ρύθμιση του συστήματος αυτοματοποιείται πλήρως μέσω \textit{Ansible}, εξαλείφοντας τα χειροκίνητα βήματα εγκατάστασης που απαιτούνταν στο τοπικό περιβάλλον.
+    
+    \item \textbf{Διαχείριση secrets:} Τα ευαίσθητα διαπιστευτήρια (\textit{MongoDB URI}, κλειδιά \textit{MinIO}, διαπιστευτήρια \textit{RabbitMQ}) μεταφέρονται από \textit{hardcoded} ή τοπικές μεταβλητές περιβάλλοντος σε κεντρική, ασφαλή διαχείριση μέσω \textit{HashiCorp Vault}.
+    
+    \item \textbf{Παράδοση κώδικα:} Η ανάπτυξη νέων εκδόσεων μεταβαίνει από χειροκίνητο \textit{rebuild}/\textit{redeploy} σε πλήρως αυτοματοποιημένο \textit{GitOps} \textit{pipeline} (\textit{Jenkins} για \textit{continuous integration}, \textit{ArgoCD} για \textit{continuous deployment}), με κάθε \textit{commit} να οδηγεί αυτόματα σε ενημέρωση του συστήματος.
+    
+    \item \textbf{Επεξεργασία εικόνων:} Η δημιουργία \textit{thumbnails} προστίθεται ως ανεξάρτητη \textit{serverless} συνάρτηση μέσω \textit{Knative}, η οποία κλιμακώνεται αυτόματα ανάλογα με τη ζήτηση, αντί να αποτελεί μέρος του μονολιθικού \textit{backend}.
+\end{itemize}
+
+Σε κάθε περίπτωση, το \textit{application layer} (\textit{frontend}, \textit{backend}, \textit{RabbitMQ}, \textit{MinIO}, \textit{Node-Red}, \textit{Thingsboard}) παραμένει αμετάβλητο σε επίπεδο επιχειρηματικής λογικής --- η μετάβαση αυτή δεν αλλάζει \textit{τι} κάνει η εφαρμογή, αλλά \textit{πώς} αναπτύσσεται, ρυθμίζεται, και λειτουργεί. Η παρακάτω εικόνα 
+\ref{fig:evolution} συνοψίζει οπτικά αυτή τη μετάβαση, αντιπαραθέτοντας το \textit{current state} με το \textit{target state} της αρχιτεκτονικής.
+
+\afterpage{ 
+    \clearpage 
+    \begin{landscape}
+        \thispagestyle{empty} 
+        
+        \begin{figure}[p]
+            \centering
+            \includegraphics[width=1.0\linewidth, keepaspectratio]{project/report/figures/diagrams-current-target.jpg}
+            
+            \vspace{10pt} 
+            \caption{Εξέλιξη: από το \textit{MicroK8s} τοπικής εγκατάστασης (\textit{current state}) στο πλήρως αυτοματοποιημένο \textit{cloud-native} περιβάλλον στο \textit{Azure} (\textit{target state})}
+            \label{fig:evolution}
+        \end{figure}
+        \clearpage 
+    \end{landscape}
+}
+
+\newpage
+\subsection{Ανάλυση \textit{Microservices}}
+
+Το σύστημα αποτελείται από διακριτές υπηρεσίες, καθεμία με συγκεκριμένη ευθύνη, που επικοινωνούν μεταξύ τους μέσω καθορισμένων διεπαφών (\textit{API} κλήσεις, μηνύματα ουράς, ή \textit{events}). Η \textit{frontend} υπηρεσία είναι υπεύθυνη αποκλειστικά για τη διεπαφή χρήστη, χωρίς να διατηρεί λογική επιχειρηματικού επιπέδου. Η \textit{backend} υπηρεσία συγκεντρώνει τη βασική επιχειρηματική λογική: επεξεργασία αιτημάτων, έλεγχο \textit{idempotency}, και συντονισμό των κλήσεων προς τις υπόλοιπες υπηρεσίες αποθήκευσης και ειδοποίησης.
+
+Η αποθήκευση δεδομένων είναι διαχωρισμένη ανά τύπο περιεχομένου: τα δομημένα δεδομένα (στοιχεία προϊόντων, χρηστών) αποθηκεύονται στη \textit{MongoDB}, ενώ τα μη-δομημένα δεδομένα μεγάλου μεγέθους (εικόνες προϊόντων) αποθηκεύονται στο \textit{MinIO}, ως αντικείμενα (\textit{object storage}). Ο διαχωρισμός αυτός επιτρέπει στις δύο υπηρεσίες να κλιμακώνονται ανεξάρτητα, ανάλογα με τη φύση του φόρτου που δέχονται.
+
+Η επικοινωνία μεταξύ \textit{backend} και των ασύγχρονων καταναλωτών (\textit{Node-RED}, \textit{ThingsBoard}) δεν γίνεται απευθείας, αλλά μέσω της ουράς μηνυμάτων \textit{RabbitMQ}, η οποία αποσυνδέει χρονικά το \textit{backend} από τους consumers: το \textit{backend} δεν χρειάζεται να γνωρίζει πόσοι ή ποιοι καταναλωτές υπάρχουν, ούτε να περιμένει την ολοκλήρωση της επεξεργασίας τους για να απαντήσει στον χρήστη.
 
 
+\subsection{Τεχνολογικά κριτήρια επιλογής}
 
-\subsection{Ανάλυση Μικρουπηρεσιών (Microservices)}
+Πέρα από τον ρόλο κάθε υπηρεσίας, αξίζει να σταθούμε στο \textit{γιατί} επιλέχθηκε η συγκεκριμένη τεχνολογία για κάθε ρόλο, έναντι των πιο διαδεδομένων εναλλακτικών της αγοράς. Οι επιλογές αυτές δεν ήταν αυθαίρετες, αλλά βασίστηκαν σε κριτήρια καταλληλότητας για το μέγεθος και τη φύση του σεναρίου, αποφεύγοντας πολυπλοκότητα που δεν δικαιολογείται στην παρούσα κλίμακα.
 
-\subsection{Backend, Frontend, Message Broker (RabbitMQ), Object Storage (MinIO)}
+Για την ασύγχρονη ανταλλαγή μηνυμάτων επιλέχθηκε το \textit{RabbitMQ} αντί εναλλακτικών όπως το \textit{Apache Kafka}: το \textit{RabbitMQ} προσφέρει απλούστερο μοντέλο ουράς μηνυμάτων (\textit{message queue}), κατάλληλο για τον όγκο και τη συχνότητα μηνυμάτων του σεναρίου, χωρίς την πολυπλοκότητα διαχείρισης \textit{partitions} και \textit{consumer groups} που συνεπάγεται το \textit{Kafka}.
 
-\subsection{Μόνιμη Αποθήκευση Δεδομένων (Data Persistence): Υλοποίηση PV και PVC στο Azure}
+Για την αποθήκευση αρχείων επιλέχθηκε το \textit{MinIO} ως αυτο-φιλοξενούμενη (\textit{self-hosted}), συμβατή με \textit{S3 API} λύση \textit{object storage}, αντί απευθείας χρήσης \textit{Amazon S3} ή \textit{Azure Blob Storage}. Η επιλογή αυτή επιτρέπει στο σύστημα να παραμένει \textit{cloud-agnostic} ως προς την αποθήκευση αντικειμένων, διατηρώντας πλήρη έλεγχο της υποδομής εντός του \textit{Kubernetes cluster}, ενώ η συμβατότητα με το \textit{S3 API} διασφαλίζει ότι ο κώδικας του \textit{backend} θα παραμείνει λειτουργικός και σε περίπτωση μελλοντικής μετάβασης σε διαχειριζόμενη υπηρεσία \textit{object storage}.
+
+Ο πίνακας \ref{tab:infra} συνοψίζει το σύνολο των τεχνολογιών υποδομής, αντιστοιχίζοντας κάθε υπηρεσία με τον τεχνολογικό της ρόλο.
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Application-level services and technology choices}
+\label{tab:infra}
+\small
+\begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{2.5cm} | >{\centering\arraybackslash}p{3cm} | X |}
+\hline
+\rowcolor{HUAblue} 
+\textbf{\color{white} Service} & \textbf{\color{white} Technology} & \textbf{\color{white} Role in infrastructure} \\ \hline
+
+Frontend & React & User interface \\ \hline
+
+\rowcolor{lightgray!30}
+Backend & Node.js / Express & Business logic, API, design patterns \\ \hline
+
+Messaging & RabbitMQ & Asynchronous communication (event bus) \\ \hline
+
+\rowcolor{lightgray!30}
+Database & MongoDB Atlas & Managed NoSQL database service \\ \hline
+
+Storage & MinIO & S3-compatible object storage \\ \hline
+
+\rowcolor{lightgray!30}
+IoT logic & Node-RED & Flow-based environmental simulation \\ \hline
+
+Visualization & ThingsBoard & IoT dashboards, real-time monitoring \\ \hline
+\end{tabularx}
+\end{table}
+
+\newpage
+\subsection{Μόνιμη αποθήκευση δεδομένων (\textit{Data Persistence})}
+
+Τα \textit{containers} είναι, εκ σχεδιασμού, εφήμερα: όταν ένα \textit{pod} τερματίζεται ή αναδημιουργείται, οποιοδήποτε δεδομένο αποθηκευμένο στο εσωτερικό \textit{filesystem} του \textit{container} χάνεται. Για υπηρεσίες όπως το \textit{MinIO}, το \textit{RabbitMQ}, και το \textit{Vault}, που απαιτούν διατήρηση δεδομένων ανεξάρτητα από τον κύκλο ζωής του \textit{pod} που τις φιλοξενεί, το \textit{Kubernetes} προσφέρει τον μηχανισμό \textit{Persistent Volumes} (\textit{PV}) και \textit{Persistent Volume Claims} (\textit{PVC}).
+
+Ένα \textit{PV} αντιπροσωπεύει έναν πραγματικό αποθηκευτικό πόρο (στην περίπτωση αυτή, δίσκο στο \textit{Azure}), ενώ ένα \textit{PVC} αποτελεί το αίτημα ενός \textit{pod} για χρήση συγκεκριμένης ποσότητας αποθηκευτικού χώρου, χωρίς να απαιτείται να γνωρίζει τις τεχνικές λεπτομέρειες του υποκείμενου \textit{storage}. Η σύνδεση μεταξύ τους πραγματοποιείται αυτόματα από το \textit{Kubernetes}, μέσω του προεπιλεγμένου \textit{storage class} (\texttt{microk8s-hostpath}), το οποίο δεσμεύει χώρο στον τοπικό δίσκο της εικονικής μηχανής.
+
+Στο σύστημα, κάθε \textit{stateful} υπηρεσία διαθέτει το δικό της \textit{PVC}, ώστε τα δεδομένα της να επιβιώνουν ανεξάρτητα από επανεκκινήσεις: το \textit{MinIO} διατηρεί τα αποθηκευμένα αρχεία, το \textit{RabbitMQ} τη κατάσταση των ουρών, και το \textit{Vault} τα κρυπτογραφημένα secret του, ακόμη και όταν τα αντίστοιχα \textit{pods} αναδημιουργούνται μετά από ενημέρωση ή επανεκκίνηση της εικονικής μηχανής.\newline\newline
+Ενδεικτικά, ο ορισμός του \textit{PVC} για το \textit{RabbitMQ} έχει την ακόλουθη μορφή: \newline
+
+\begin{lstlisting}[language=yaml, caption={PersistentVolumeClaim για το RabbitMQ}]
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+\end{lstlisting}
+
+Το \textit{pod} του \textit{RabbitMQ} αναφέρεται σε αυτό το \textit{PVC} μέσω του συγκεκριμένου πεδίου \texttt{volumes.persistentVolumeClaim.claimName}, και προσαρτά τον αποθηκευτικό χώρο στον κατάλογο \texttt{/var/lib/rabbitmq}, όπου το \textit{RabbitMQ} διατηρεί τα δεδομένα των ουρών του. Το αντίστοιχο μοτίβο ακολουθείται και για τα \textit{PVCs} του \textit{MinIO} και του \textit{Vault}.
+
+Η αρχιτεκτονική που παρουσιάστηκε στις προηγούμενες ενότητες αποτελεί το θεμέλιο πάνω στο οποίο χτίζονται οι υπόλοιπες πτυχές του συστήματος. Στα επόμενα κεφάλαια εξετάζεται το πώς αυτή η αρχιτεκτονική γίνεται \textbf{αυτοματοποιημένη} και ασφαλής (Κεφάλαιο 3), πώς ενσωματώνει σχεδιαστικά πρότυπα ανθεκτικότητας στον κώδικα (Κεφάλαιο 4), και πώς αξιολογείται η απόδοσή της μέσω πειραματικών μετρήσεων (Κεφάλαιο 5).

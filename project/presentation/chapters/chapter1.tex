@@ -1,20 +1,47 @@
-\section{Problem Definition \& Goal}
-
+\section{Introduction}
 {
     \metroset{titleformat frame=smallcaps}
-\begin{frame}[fragile]{Defining the Challenge: From Monolith to Cloud-Native}
 
+% --- Slide 1 ---
+\begin{frame}[fragile]{From a Local Prototype to a Production Platform}
 \begin{itemize}
-    \item \textbf{The Challenge:}  Transitioning a legacy monolithic Inventory ERP to a modern, scalable environment.
-    \item \textbf{Current Limitations:} 
+    \item \textbf{Starting point:} a working ERP + IoT prototype from the "Cloud Platforms" course, running locally on a single machine.
+    \item \textbf{Limitations of the local setup:}
     \begin{itemize}
-        \item \textbf{Scalability Issues:} Hard to scale individual components without affecting the whole system.
-        \item \textbf{Single Point of Failure:} Tightly coupled services increase the risk of complete system downtime.
-        \item \textbf{Deployment Complexity:} Environment dependencies make migration to production error-prone.
+        \item \textbf{Ephemeral storage:} data and images were lost on every restart.
+        \item \textbf{Manual deployment:} the cluster was deployed by hand, via a script.
+        \item \textbf{No resilience:} no patterns, no monitoring, no automation.
     \end{itemize}
-    \item \textcolor{HUAblue}{\textbf{The Goal:}} To design a distributed, Cloud-Native Smart Warehouse system using Microservices and IoT integration.
+    \item \textcolor{HUAblue}{\textbf{The question:}} how do we turn this prototype into a production-ready, cloud-native platform?
 \end{itemize}
+\end{frame}
 
+% --- Slide 2 ---
+\begin{frame}[fragile]{The Business Scenario: A Smart Warehouse}
+\begin{itemize}
+    \item \textbf{The idea:} monitor a warehouse in real time -- both its products and its environmental conditions.
+    \item \textbf{The flow in one line:} an employee adds a product, and the system tracks the temperature and humidity of its storage area.
+    \item \textbf{Why it fits cloud-native:}
+    \begin{itemize}
+        \item Event-driven and distributed by nature.
+        \item Needs to stay available under failures.
+        \item Needs to scale with load.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+% --- Slide 3 ---
+\begin{frame}[fragile]{Goals \& Approach}
+\begin{itemize}
+    \item \textbf{Goal:} transform the application into a cloud-native system using design patterns, GitOps, monitoring, IaC and SLAs.
+    \item \textbf{Methodology:} an incremental approach -- first the foundation, then resilience, then proof through measurements.
+    \item \textcolor{HUAblue}{\textbf{What follows:}}
+    \begin{itemize}
+        \item Architecture \& services
+        \item Automation, CI/CD \& design patterns
+        \item Serverless, monitoring \& SLAs
+    \end{itemize}
+\end{itemize}
 \end{frame}
 
 }

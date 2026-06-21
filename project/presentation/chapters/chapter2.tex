@@ -1,25 +1,87 @@
 \section{Proposed Architecture \& Methodology}
+{
+    \metroset{titleformat frame=smallcaps}
 
+% ===== Topic A: Evolution =====
+\begin{frame}{The Evolution: From Local Prototype to Cloud-Native}
+\begin{itemize}
+    \item \textbf{Before:} a single machine, ephemeral data, manual deployment, no resilience.
+    \item \textbf{After:} the same application core -- now durable, automated and observable.
+    \item \textcolor{HUAblue}{\textbf{The core idea:}} we do not rebuild the application; we add cloud-native layers around a solid base.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Evolution at a Glance}
+    \centering
+    %\includegraphics[height=0.82\textheight]{figures/before-after}
+\end{frame}
+
+% ===== Topic B: System Architecture =====
+\begin{frame}{System Architecture: A Hybrid Cloud Approach}
+\begin{itemize}
+    \item \textbf{Application \& logic (private cloud):} Backend, Frontend and services run inside MicroK8s.
+    \item \textbf{Data persistence (public cloud):} MongoDB Atlas (DBaaS) stays outside the cluster for durability.
+    \item \textbf{Orchestrated services:} Frontend, Backend, RabbitMQ, MinIO, Node-RED and ThingsBoard, each as a pod.
+    \item \textcolor{HUAblue}{\textbf{Automation:}} declarative YAML manifests replace manual configuration.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{System Architecture}
+    \centering
+    %\includegraphics[height=0.82\textheight]{figures/system-architecture}
+\end{frame}
+
+% ===== Topic C: Data Flow & Persistence =====
+\begin{frame}{The Add-Product Flow \& Making It Durable}
+\begin{itemize}
+    \item \textbf{Event-driven flow:} image to MinIO, metadata to MongoDB, event to RabbitMQ, then Node-RED to ThingsBoard.
+    \item \textbf{The persistence fix:} Persistent Volumes (PV/PVC) so data survives pod restarts.
+    \item \textcolor{HUAblue}{\textbf{Why it matters:}} this solves the biggest limitation of the original prototype.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Add-Product Data Flow}
+    \centering
+    %\includegraphics[height=0.82\textheight]{figures/add-product-flow}
+\end{frame}
+
+}
 
 {
     \metroset{titleformat frame=smallcaps}
-\begin{frame}{Strategic Implementation: From Containerization to Hybrid Orchestration}
+    \begin{frame}{Infrastructure and Technologies: A Unified Cloud-Native Stack}
+        \centering
+        \renewcommand{\arraystretch}{1.2}
+        \footnotesize 
 
-\begin{itemize}
-    \item \textbf{Architectural Pillars:}
-    \begin{itemize}
-        \item \textcolor{HUAblue}{\textbf{Containerization:}} Packaging services into Docker images for environment-agnostic execution.
-        \item \textcolor{HUAblue}{\textbf{Full Orchestration:}} Transitioning from simple runtime to MicroK8s for automated lifecycle management.
-    \end{itemize}
-    \item \textbf{The Hybrid Deployment Strategy (Consistent in both phases):}
-    \begin{itemize}
-        \item \textbf{Data Persistence (Public Cloud):} Leveraging MongoDB Atlas (DBaaS) to ensure data availability and durability outside the local cluster.
-        \item \textbf{Application \& Logic (Private Cloud):} Running Backend, Frontend, and services (rabbitmq, minIO, node-RED, Thingsboard) within the local MicroK8s environment.
+
+            \begin{itemize}
+        \item \textbf{Integration Maturity:} Selection of production-grade tools that support a full application lifecycle.
+        \item \textbf{Hybrid Interoperability:} Seamless communication between on-premise MicroK8s resources and public DBaaS (MongoDB Atlas).
+        \item \textbf{Event-Driven Foundation:} Leveraging RabbitMQ and Node-RED for real-time asynchronous data flows.
         
     \end{itemize}
-    \item \textbf{Automation:} Using YAML manifests to eliminate manual configuration.
-\end{itemize}
 
-\end{frame}
+        \begin{tabularx}{\textwidth}{|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.8cm}|>{\centering\arraybackslash}X|}
+        \hline
+        \rowcolor{HUAblue} 
+        \textbf{\color{white} Service} & \textbf{\color{white} Technology} & \textbf{\color{white} Role in Infrastructure} \\ \hline
+        Orchestration & MicroK8s & Container management and orchestration \\ \hline
+        Containerization & Docker \& Hub & Image registry for distribution \\ \hline
+        Messaging & RabbitMQ & Asynchronous communication (Event Bus) \\ \hline
+        Database & MongoDB Atlas & Managed NoSQL database service \\ \hline
+        Storage & MinIO & Object Storage for files and images \\ \hline
+        IoT Logic & Node-RED & Flow-based data processing \\ \hline
+        Visualization & Thingsboard & IoT Dashboards \& Real-time monitoring \\ \hline
+        \end{tabularx}
+        
+        \vspace{0.3cm}
+        \scriptsize
+        \textit{Table 1: Infrastructure Technologies and Services}
+
+    \end{frame}
+
+
+
 }
 

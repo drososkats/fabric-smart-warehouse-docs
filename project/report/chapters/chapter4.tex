@@ -1,20 +1,133 @@
 \newpage
 
-\section{Μεθοδολογία GitOps \& CI/CD Pipelines (GitOps - 20\%)}
+\section{Κεφάλαιο 4: \textit{GitOps} και \textit{CI/CD Pipelines}}
 
-Σκοπός: Πώς ταξιδεύει ο κώδικας από το laptop σου στο Cloud αυτόματα.
+Το παρόν κεφάλαιο περιγράφει πώς μια αλλαγή στον κώδικα της εφαρμογής μεταφράζεται αυτόματα σε αλλαγή στο τρέχον σύστημα: από τη δομή του αποθετηρίου \textit{Git}, μέσω της συνεχούς ενσωμάτωσης (\textit{Continuous Integration}) με το \textit{Jenkins}, έως τη συνεχή παράδοση (\textit{Continuous Deployment}) με το \textit{ArgoCD} --- χωρίς να απαιτείται καμία χειροκίνητη ενέργεια μετά την αρχική υποβολή του κώδικα.
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=1.0\textwidth]{project/report/figures/pipeline.jpg}
+   \caption{GitOps pipeline: από το git push στο cluster μέσω Jenkins και ArgoCD}
+   \label{fig:cicd}
+ \end{figure}
+
+\subsection{Δομή του \textit{Git Monorepo}}
+
+Ο πηγαίος κώδικας του συστήματος είναι οργανωμένος σε ένα ενιαίο αποθετήριο (\textit{monorepo}), όπου κάθε επιμέρους συστατικό --- \textit{backend}, \textit{frontend}, \textit{serverless} συνάρτηση, αρχεία υποδομής --- διατηρείται στον δικό του υποκατάλογο, με το δικό του \textit{Dockerfile} όπου απαιτείται. Η επιλογή \textit{monorepo} αντί πολλαπλών, ανεξάρτητων αποθετηρίων διευκολύνει τη συνολική παρακολούθηση των αλλαγών και απλοποιεί τη ρύθμιση τόσο του \textit{Jenkins} όσο και του \textit{ArgoCD}, καθώς και τα δύο εργαλεία αναφέρονται σε ένα και μόνο αποθετήριο.
+
+Ο κατάλογος \texttt{kubernetes/} συγκεντρώνει το σύνολο των \textit{manifests} ανάπτυξης (\textit{Deployments}, \textit{Services}, \textit{PersistentVolumeClaims}) για όλα τα συστατικά του συστήματος, και αποτελεί το σημείο που παρακολουθεί το \textit{ArgoCD}: οποιαδήποτε αλλαγή εντός αυτού του καταλόγου αποτελεί \textit{desired state} για το \textit{cluster}. Από τη στιγμή που το \textit{Kustomize} εισήχθη ως επιπλέον επίπεδο οργάνωσης αυτού του καταλόγου, ένα αρχείο \texttt{kustomization.yaml} απαριθμεί ρητά το σύνολο των \textit{manifests} που πρέπει να συναρμολογηθούν, χωρίς να μεταβάλλεται το περιεχόμενο των επιμέρους αρχείων.
+
+\subsection{\textit{Continuous Integration - (CI)} με \textit{Jenkins}}
+
+Το \textit{Jenkins} αναλαμβάνει τον ρόλο της συνεχούς ενσωμάτωσης: από τη στιγμή που ο κώδικας \textit{push}-άρεται στο αποθετήριο, το \textit{pipeline} εκτελεί αυτόματα μια σειρά ελέγχων και ενεργειών --- δοκιμές, ελέγχους ασφάλειας, δημιουργία και δημοσίευση \textit{image} --- και καταλήγει σε ενημέρωση του \textit{desired state} που παρακολουθεί το \textit{ArgoCD}. Οι επόμενες ενότητες παρουσιάζουν αυτή τη ροή ως μία αλυσίδα: πώς ενεργοποιείται αυτόματα το \textit{pipeline}, ποια στάδια εκτελούνται κατά τον έλεγχο και τη δημιουργία της εικόνας, και πώς η ενημέρωση του \textit{manifest} κλείνει τον κύκλο.
+
+\subsubsection{Αυτόματη ενεργοποίηση μέσω \textit{webhook} και επιλεκτική εκτέλεση}
+
+Η αρχική ρύθμιση του \textit{pipeline} απαιτούσε χειροκίνητη εκκίνηση από τον χρήστη (\textit{«Build Now»}) μετά από κάθε \textit{push} κώδικα. Για την πλήρη αυτοματοποίηση αυτού του βήματος, ρυθμίστηκε \textit{webhook} στο επίπεδο του αποθετηρίου \textit{GitHub}: κάθε \textit{push} στον κλάδο \texttt{main} αποστέλλει αυτόματα ειδοποίηση στον \textit{server} του \textit{Jenkins}, η οποία ενεργοποιεί νέα εκτέλεση του \textit{pipeline} χωρίς καμία ανθρώπινη παρέμβαση.
+
+Καθώς το αποθετήριο είναι οργανωμένο ως \textit{monorepo}, μια αλλαγή σε οποιοδήποτε αρχείο --- ανεξάρτητα από το αν αφορά τον κώδικα της εφαρμογής ή απλά τεκμηρίωση --- θα ενεργοποιούσε, χωρίς πρόσθετο έλεγχο, πλήρη εκτέλεση \textit{build} και δημοσίευσης νέας έκδοσης (\textit{image}) στο \textit{Docker Hub}, ανεξάρτητα από το αν ο κώδικας της εφαρμογής είχε όντως μεταβληθεί. Για την αποφυγή αυτής της άσκοπης επανάληψης, κάθε στάδιο (\textit{stage}) του \textit{pipeline} που αφορά το \textit{backend} ή το \textit{frontend} συνδέεται με συνθήκη τύπου \texttt{when \{ changeset \}}, η οποία ελέγχει αν το \textit{Git changeset} της τρέχουσας εκτέλεσης περιλαμβάνει αρχεία εντός του αντίστοιχου καταλόγου:
 
 
-\subsection{Δομή του Git Monorepo: Οργάνωση κώδικα, Dockerfiles και K8s Manifests}
+\begin{lstlisting}[language=yaml, caption={Jenkins Pipeline stage για το build του Backend}]
+stage('Backend: Build Docker Image') {
+    when {
+        changeset "backend/**"
+    }
+    steps {
+        dir('backend') {
+            sh "docker build -t ${BACKEND_IMAGE_NAME}:${IMAGE_TAG} ."
+        }
+    }
+}
+\end{lstlisting}
 
-\subsection{Συνεχής Ενσωμάτωση (CI) με Jenkins}
+Με τον τρόπο αυτό, μια αλλαγή αποκλειστικά στο \texttt{backend/} ενεργοποιεί μόνο τα στάδια του \textit{backend}, μια αλλαγή αποκλειστικά στο \texttt{frontend/} ενεργοποιεί μόνο τα αντίστοιχα στάδια του \textit{frontend}, και μια αλλαγή εκτός αμφότερων (π.χ. σε αρχεία υποδομής ή τεκμηρίωσης) παραλείπει εντελώς τα στάδια \textit{build} και \textit{push}, χωρίς να δημιουργείται νέα, αχρείαστη έκδοση \textit{image}.
 
-\subsubsection{Το Jenkinsfile και η διαδικασία Build \& Test}
 
-\subsubsection{Δημοσίευση (Push) των Container Images στο Docker Hub}
+\subsubsection{Το \textit{Jenkinsfile} και η διαδικασία \textit{Build \& Test}}
 
-\subsection{Συνεχής Παράδοση (CD) με ArgoCD}
+Το \textit{pipeline} εκτελείται μέσα σε προσωρινό \textit{pod}, δημιουργημένο δυναμικά εντός του ίδιου \textit{Kubernetes cluster} (\textit{Jenkins Kubernetes plugin}), με ξεχωριστά \textit{containers} για τις εργασίες \textit{Node.js} και \textit{Docker}. Μετά την επιβεβαίωση ότι η αλλαγή αφορά τον κατάλογο \texttt{backend/}, εκτελούνται διαδοχικά: μοναδιαίοι έλεγχοι (\textit{unit tests}) μέσω \textit{Jest}, και έλεγχος ασφάλειας εξαρτήσεων (\textit{npm audit}) με όριο αποδοχής σε κρίσιμες (\textit{critical}) ευπάθειες. \newpage
 
-Αυτόματος συγχρονισμός (Syncing) του Cluster με το αποθετήριο (Repository).
+
+\begin{lstlisting}[language=yaml, caption={Jenkins Pipeline stage για το εκτέλεση Unit Tests}]
+stage('Backend: Unit Tests') {
+    when { changeset "backend/**" }
+    steps {
+        container('node') {
+            dir('backend') {
+                sh 'npm install && npm test'
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+Μόνο εφόσον αμφότεροι οι έλεγχοι ολοκληρωθούν επιτυχώς, το \textit{pipeline} προχωράει στο επόμενο στάδιο, της δημιουργίας του \textit{container image}. Η αποτυχία οποιουδήποτε ελέγχου διακόπτει αυτόματα την εκτέλεση, αποτρέποντας τη δημοσίευση μη ελεγμένου κώδικα. Η εικόνα \ref{fig:jenkins-tests} δείχνει μια ολοκληρωμένη, επιτυχημένη εκτέλεση του \textit{pipeline}, με το σύνολο των σταδίων --- δοκιμές, έλεγχο ασφάλειας, δημιουργία \textit{image} --- να εμφανίζεται με πράσινη ένδειξη επιτυχίας.
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=1.0\textwidth]{project/report/figures/jenkins-build.png}
+   \caption{Επιτυχής εκτέλεση του \textit{Jenkins pipeline}}
+  \label{fig:jenkins-tests}
+ \end{figure}
+
+
+Η επιτυχής δημιουργία του \textit{image}, όπως φαίνεται παραπάνω, αποτελεί προαπαιτούμενο για το επόμενο στάδιο: η εικόνα δεν έχει κανένα νόημα αν παραμείνει τοπικά αποθηκευμένη μέσα στο \textit{pod} εκτέλεσης του \textit{Jenkins} --- πρέπει να δημοσιευτεί σε σημείο όπου το \textit{cluster} μπορεί να την ανακτήσει κατά την ανάπτυξη (\textit{deployment}).
+\newpage
+
+\subsubsection{\textit{Push} των \textit{container images} στο \textit{Docker Hub}}
+
+Κάθε επιτυχημένη εκτέλεση παράγει νέα έκδοση (\textit{image}) του \textit{backend}, με ετικέτα (\textit{tag}) που αντιστοιχεί στον αριθμό εκτέλεσης του \textit{Jenkins} (\texttt{v\$\{BUILD\_NUMBER\}}), εξασφαλίζοντας ότι κάθε έκδοση είναι μοναδική και ιχνηλατήσιμη. Η εικόνα δημιουργείται και δημοσιεύεται στο \textit{Docker Hub} μέσω των ακόλουθων σταδίων:
+
+\begin{lstlisting}[language=yaml, caption={Jenkins Pipeline stage για το push της εικόνας στο Docker Hub}]
+stage('Backend: Push to Docker Hub') {
+    when { changeset "backend/**" }
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKERHUB_USR',
+            passwordVariable: 'DOCKERHUB_PSW')]) {
+            sh "echo ${DOCKERHUB_PSW} | docker login -u ${DOCKERHUB_USR} --password-stdin"
+            sh "docker push ${BACKEND_IMAGE_NAME}:${IMAGE_TAG}"
+        }
+    }
+}
+\end{lstlisting}
+
+Τα διαπιστευτήρια πρόσβασης στο \textit{Docker Hub} δεν εμφανίζονται πουθενά σε καθαρό κείμενο: είναι αποθηκευμένα στο \textit{Jenkins Credentials Store}, και εισάγονται στο περιβάλλον εκτέλεσης αποκλειστικά μέσω του \textit{block} \texttt{withCredentials}, το οποίο τα αποκρύπτει αυτόματα από τα αρχεία καταγραφής (\textit{logs}) του \textit{pipeline}.
+
+Αμέσως μετά τη δημοσίευση, ένα τελικό στάδιο ενημερώνει αυτόματα το \textit{manifest} ανάπτυξης (\texttt{kubernetes/backend-deployment.yaml}) με το νέο \textit{tag}, και πραγματοποιεί \textit{commit} και \textit{push} της αλλαγής πίσω στο ίδιο αποθετήριο --- κλείνοντας έτσι τον κύκλο μεταξύ της δημιουργίας νέας έκδοσης και της ενημέρωσης του \textit{επιθυμητού} (\textit{desired}) \textit{state} που παρακολουθεί το \textit{ArgoCD}. Για την αποφυγή ατέρμονου βρόχου --- όπου το αυτόματο \textit{commit} θα ενεργοποιούσε ξανά το ίδιο το \textit{pipeline} --- το μήνυμα του \textit{commit} φέρει την ετικέτα \texttt{[skip-jenkins]}, η οποία ελέγχεται σε αρχικό στάδιο (\textit{guard}) πριν την εκτέλεση οποιουδήποτε άλλου σταδίου.
+
+\subsection{\textit{Continuous Delivery \& Deployment - (CD)} με \textit{ArgoCD}}
+
+Ενώ το \textit{Jenkins} είναι υπεύθυνο για τη δημιουργία και δημοσίευση νέων εκδόσεων (\textit{images}), η εφαρμογή τους στο \textit{cluster} δεν πραγματοποιείται απευθείας από το \textit{Jenkins}. Αντί αυτού, ακολουθείται η φιλοσοφία \textit{GitOps}: το \textit{Git} αποθετήριο αποτελεί τη \textbf{μοναδική πηγή αλήθειας} (\textit{single source of truth}) για την επιθυμητή κατάσταση του \textit{cluster}, και ένας ξεχωριστός ελεγκτής --- το \textit{ArgoCD} --- είναι υπεύθυνος να διασφαλίζει ότι η \textit{πραγματική} κατάσταση του \textit{cluster} συγκλίνει συνεχώς προς αυτή την επιθυμητή κατάσταση.
+\newpage
+Το αντικείμενο \textit{Application} του \textit{ArgoCD} ορίζει το αποθετήριο και τον κατάλογο που παρακολουθείται (\texttt{kubernetes/}), καθώς και την πολιτική συγχρονισμού:
+
+\begin{lstlisting}[language=yaml, caption={ArgoCD Application manifest για το συγχρονισμό του repository}]
+spec:
+  source:
+    repoURL: https://github.com/drososkats/fabric-smart-warehouse.git
+    targetRevision: main
+    path: kubernetes
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+\end{lstlisting}
+
+Η ρύθμιση \texttt{selfHeal: true} εξασφαλίζει ότι, αν κάποιος τροποποιήσει χειροκίνητα έναν πόρο απευθείας στο \textit{cluster} (π.χ. μέσω \texttt{kubectl edit}), το \textit{ArgoCD} θα επαναφέρει αυτόματα τον πόρο στην κατάσταση που ορίζει το \textit{Git}, αποτρέποντας \textit{drift} μεταξύ των δύο. Η ρύθμιση \texttt{prune: true} διασφαλίζει ότι πόροι που αφαιρούνται από το \textit{Git} αφαιρούνται αντίστοιχα και από το \textit{cluster}.
+
+Από προεπιλογή, το \textit{ArgoCD} ανιχνεύει αλλαγές στο αποθετήριο μέσω περιοδικής ανίχνευσης (\textit{polling}), με διάστημα μερικών λεπτών. Για τη μείωση αυτής της καθυστέρησης, ρυθμίστηκε επιπλέον \textit{webhook} --- κατά το ίδιο πρότυπο με το \textit{Jenkins} --- ώστε κάθε \textit{push} στο αποθετήριο να ενεργοποιεί άμεση επαναξιολόγηση (\textit{refresh}) από το \textit{ArgoCD}, χωρίς αναμονή του επόμενου κύκλου \textit{polling}.
+
+ \begin{figure}[h]
+   \centering
+   \includegraphics[width=0.85\textwidth]{project/report/figures/argocd-healthy-synced.png}
+   \caption{\textit{ArgoCD}: εφαρμογή σε κατάσταση \textit{Healthy} και \textit{Synced} μετά από αυτόματο συγχρονισμό}
+   \label{fig:argocd-synced}
+ \end{figure}
+\newpage
+Η ροή που περιγράφηκε --- από το \textit{push} κώδικα, μέσω αυτόματου ελέγχου και δημιουργίας νέας έκδοσης στο \textit{Jenkins}, έως τον αυτόματο συγχρονισμό του \textit{cluster} από το \textit{ArgoCD} --- συνθέτει έναν πλήρως αυτοματοποιημένο κύκλο, χωρίς καμία χειροκίνητη παρέμβαση μετά την αρχική υποβολή κώδικα. Το επόμενο κεφάλαιο εξετάζει τι ακριβώς περιέχει ο κώδικας που διανύει αυτόν τον κύκλο --- τα σχεδιαστικά πρότυπα ανθεκτικότητας που τον καθιστούν ανθεκτικό σε σφάλματα και κατάλληλο για κλιμάκωση.
 
 

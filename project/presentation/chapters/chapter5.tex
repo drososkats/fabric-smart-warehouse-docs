@@ -1,31 +1,33 @@
-\section{Full Orchestration \& Automation (Phase B)}
-
+\section{Design Patterns \& Resilience}
 {
     \metroset{titleformat frame=smallcaps}
-\begin{frame}{Automated Deployment}
 
-
-        \begin{itemize}
-            \item \textbf{Image Preparation}: Created final \texttt{Docker} images for Frontend and Backend and pushed them to \texttt{Docker Hub}.
-            \item \textbf{Kubernetes Configuration}: Developed \texttt{YAML} manifests for every service, including the application and infrastructure (\texttt{MinIO}/\texttt{RabbitMQ}).
-            \item \textbf{IoT Integration}: Added \texttt{Node-RED} and \texttt{ThingsBoard} into the cluster using dedicated \texttt{YAML} files to complete the ecosystem.
-            \item \textbf{Final Deployment}: Executed the \textcolor{HUAblue}{\texttt{deploy\_fabric.sh}} script to pull images and start all services in the correct order.
-        \end{itemize}
-
-
-
+% --- Slide 1 (words) ---
+\begin{frame}{Designing for Failure: Why Resilience Matters}
+\begin{itemize}
+    \item In a distributed system, failures are normal: networks blip, services restart, requests get duplicated.
+    \item A naive application crashes or corrupts data when this happens.
+    \item \textcolor{HUAblue}{\textbf{The idea:}} cloud-native design patterns turn these failures into handled, recoverable events.
+\end{itemize}
 \end{frame}
 
-\begin{frame}{Deploy result}
-
-    
+% --- Slide 2 (words) ---
+\begin{frame}{Decoupling \& Recovery}
+\begin{itemize}
+    \item \textbf{Claim Check:} large product images go to MinIO; only a lightweight reference travels through RabbitMQ.
+    \item \textbf{Retry (exponential backoff):} transient failures when talking to RabbitMQ and MongoDB are retried automatically.
+    \item \textbf{Circuit Breaker:} if a dependency is down, the breaker opens and fails fast, preventing cascading failures.
+\end{itemize}
 \end{frame}
 
-
-
-
-
-
+% --- Slide 3 (words) ---
+\begin{frame}{Safety \& Scale}
+\begin{itemize}
+    \item \textbf{Idempotency:} an idempotency key prevents duplicate products on a retried or double-submitted request.
+    \item \textbf{Stateless services:} the backend keeps no local state -- everything lives in MongoDB/MinIO -- so it scales horizontally and survives restarts.
+    \item \textcolor{HUAblue}{\textbf{Together:}} these patterns make the system fault-tolerant and ready to scale.
+\end{itemize}
+\end{frame}
 
 }
 

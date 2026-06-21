@@ -1,33 +1,25 @@
 \section{Conclusions \& Future Work}
-
 \begin{frame}{Conclusions \& Future Work}
     \begin{itemize}
-            \item \textbf{Automation Success}: Fully automated the deployment of 7+ services using \texttt{Bash} scripts and \texttt{Kubernetes YAML} files.
-            \item \textbf{Hybrid Efficiency}: Successfully connected local \texttt{MicroK8s} services with the \texttt{MongoDB Atlas} public cloud.
-            \item \textbf{Identity Management (Future)}: Integrating \texttt{Keycloak} to provide secure, centralized authentication (\texttt{SSO}) for all services.
-            \item \textbf{Data Persistence (Future)}: Using Persistent Volumes (\texttt{PV}) to ensure data is safe if a \texttt{Pod} restarts.
-            \item \textbf{Traffic Control (Future)}: Implementing an Ingress Controller for professional \texttt{URL} management and improved security.
-        \end{itemize}
+        \item \textbf{Cloud-Native transformation:} evolved a local prototype into a resilient, automated platform on Kubernetes.
+        \item \textbf{Full GitOps automation:} a single \texttt{git push} flows to the cluster via Jenkins and ArgoCD -- no manual scripts.
+        \item \textbf{Resilience by design:} Claim Check, Retry, Circuit Breaker, Idempotency and Stateless patterns make the system fault-tolerant.
+        \item \textbf{Observability \& SLAs:} Prometheus/Grafana, autoscaling, and SLA tiers derived from real load tests.
+        \item \textcolor{HUAblue}{\textbf{Future work:}} centralized identity with Keycloak (SSO), Ingress with TLS, and a custom domain for production-grade access.
+    \end{itemize}
 \end{frame}
 
-\begin{frame}{GitHub repository}
-
+\begin{frame}{GitHub Repository}
 \begin{center}Get the source of the whole project from\end{center}
-  
-\begin{center}\href{https://github.com/drososkats/fabric_cloud.git}{\color{HUAblue}\texttt{github.com/drososkats/fabric\_cloud.git}}\end{center}
-\begin{center}The presentation \emph{itself} is licensed under Katsimpras Drosos (ais25123)\end{center}
-
+\begin{center}\href{https://github.com/drososkats/fabric-smart-warehouse}{\color{HUAblue}\texttt{github.com/drososkats/fabric-smart-warehouse}}\end{center}
+\begin{center}This presentation is licensed under Katsimpras Drosos (ais25123)\end{center}
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.7\textwidth]{figures/hua/hua-logo.png}
+    %\includegraphics[width=1.0\textwidth]{project/presentation/figures/hua/hua-logo-english-dit.png}
 \end{figure}
-
-  \begin{center}\ccbysa\end{center}
-
+\begin{center}\ccbysa\end{center}
 \end{frame}
-
 
 \begin{frame}[standout, plain]
     \textbf{Thank you! / Questions?} ~\alert{\faSmileO}~
 \end{frame}
-%}

@@ -1,40 +1,24 @@
-\section{IoT Integration \& Case Study}
-
+\section{Serverless Computation}
 {
     \metroset{titleformat frame=smallcaps}
-\begin{frame}{IoT Integration}
 
+% --- Slide 1 (words) ---
+\begin{frame}{Serverless: Computation Without Servers}
 \begin{itemize}
-            \item \textbf{The Trigger}: Adding a new product in the \texttt{ERP} app starts a real-time data sequence.
-            \item \textbf{Media Storage}: Product images are automatically uploaded to the \texttt{MinIO} bucket.
-            \item \textbf{Event Messaging}: \texttt{RabbitMQ} alerts the system that a new entry is ready for processing.
-            \item \textbf{Logic Engine}: \texttt{Node-RED} consumes the message and simulates warehouse conditions (Temp/Humidity) using a custom script.
-            \item \textbf{Live Dashboard}: All data is pushed to \texttt{ThingsBoard} for real-time monitoring and history tracking.
-        \end{itemize}
-
+    \item \textbf{What it is:} code that runs only when an event happens -- no always-on server, resources are used only during execution.
+    \item \textbf{Where we use it:} a function triggered by a MinIO "new object" event.
+    \item \textcolor{HUAblue}{\textbf{Platform:}} Knative on MicroK8s (lightweight) for event-driven functions.
+\end{itemize}
 \end{frame}
 
-
-\begin{frame}{Node-RED}
-
-
-    
+% --- Slide 2 (words) ---
+\begin{frame}{The Trigger in Action}
+\begin{itemize}
+    \item \textbf{Event:} when a product image is uploaded to MinIO, an event notification fires automatically.
+    \item \textbf{Function:} it reads the new image, extracts metadata (size, dimensions) and generates a thumbnail.
+    \item \textbf{Result:} the metadata and thumbnail are written back to MinIO/MongoDB -- with no manual step and no extra always-on service.
+    \item \textcolor{HUAblue}{\textbf{Benefit:}} heavy, occasional work is offloaded from the always-on backend.
+\end{itemize}
 \end{frame}
+
 }
-
-\begin{frame}{Thingsboard telemetry}
-
-
-
-    
-\end{frame}
-
-
-
-
-\begin{frame}{Data Flow diagram}
-
-
-
-    
-\end{frame}

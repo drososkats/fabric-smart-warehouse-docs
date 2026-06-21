@@ -1,3 +1,127 @@
-\section*{Παράρτημα Α: Python scripts}
+\newpage
+\section*{Παράρτημα Α: Τεχνική αναφορά}
+
+\subsection*{Α.1 Πίνακας εντολών λειτουργίας (\textit{Operational Runbook})}
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Συνοπτικός πίνακας εντολών λειτουργίας συστήματος}
+\label{tab:runbook}
+\small
+\begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{4.5cm} | X |}
+\hline
+\rowcolor{HUAblue} 
+\textbf{\color{white} Action} & \textbf{\color{white} Command} \\ \hline
+
+start \textit{VM} & \texttt{az vm start --resource-group fabric-rg --name fabric-vm} \\ \hline
+
+\rowcolor{lightgray!30}
+shutdown \textit{VM} & \texttt{az vm deallocate --resource-group fabric-rg --name fabric-vm} \\ \hline
+
+run \textit{Ansible playbook} & \texttt{cd ansible \&\& ansible-playbook -i inventory.ini playbook.yml} \\ \hline
+
+\rowcolor{lightgray!30}
+manual \textit{unseal Vault} & \texttt{microk8s kubectl exec -n default vault-0 -- vault operator unseal <key>} \\ \hline
+
+execution \textit{load test} (\textit{GET}) & \texttt{k6 run load-tests/products-get-test.js} \\ \hline
+
+\rowcolor{lightgray!30}
+execution \textit{load test} (\textit{POST}) & \texttt{k6 run load-tests/products-post-test.js} \\ \hline
+
+Infrastructure cost Estimate & \texttt{infracost breakdown --path infrastructure/} \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection*{Α.2 Σημεία πρόσβασης \& πηγή διαπιστευτηρίων}
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Σημεία πρόσβασης στις διαχειριστικές διεπαφές του συστήματος}
+\label{tab:access}
+\small
+\begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{3cm} | >{\centering\arraybackslash}p{5cm} | X |}
+\hline
+\rowcolor{HUAblue} 
+\textbf{\color{white} Service} & \textbf{\color{white} Access Point} & \textbf{\color{white} Credentials Source} \\ \hline
+
+\textit{Jenkins UI} & \texttt{http://<VM\_IP>:30808} & \textit{Jenkins Credentials Store} \\ \hline
+
+\rowcolor{lightgray!30}
+\textit{ArgoCD UI} & \texttt{http://<VM\_IP>:30880} & \texttt{secret/fabric} (\textit{Vault}) \\ \hline
+
+\textit{MinIO Console} & \texttt{http://<VM\_IP>:9001} & \texttt{secret/fabric} (\textit{Vault}) \\ \hline
+
+\rowcolor{lightgray!30}
+\textit{Grafana} & \texttt{http://<VM\_IP>:<port>} & \textit{Helm-generated secret} \\ \hline
+\end{tabularx}
+\end{table}
+
+\newpage
+
+\subsection*{Α.3 Τεχνολογίες \& εκδόσεις}
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Κύριες τεχνολογίες υποδομής και αντίστοιχες εκδόσεις}
+\label{tab:versions}
+\small
+\begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{4cm} | X |}
+\hline
+\rowcolor{HUAblue} 
+\textbf{\color{white} Technology} & \textbf{\color{white} Version} \\ \hline
+
+\textit{MicroK8s} & --- \\ \hline
+
+\rowcolor{lightgray!30}
+\textit{ArgoCD} & \texttt{v3.4.4} \\ \hline
+
+\textit{HashiCorp Vault} & \texttt{2.0.2} \\ \hline
+
+\rowcolor{lightgray!30}
+\textit{Node.js} & \texttt{20} \\ \hline
+
+\textit{OpenTofu} & \texttt{\textgreater= 1.6} \\ \hline
+
+\rowcolor{lightgray!30}
+\textit{Infracost} & \texttt{v0.10.44} \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection*{Α.4 Κατάλογος \textit{Ansible roles}}
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\caption{Σύνολο \textit{Ansible roles} και η αντίστοιχη ευθύνη τους}
+\label{tab:roles}
+\small
+\begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{3cm} | X |}
+\hline
+\rowcolor{HUAblue} 
+\textbf{\color{white} Role} & \textbf{\color{white} Responsibility} \\ \hline
+
+\texttt{base-setup} & \textit{Docker}, \textit{MicroK8s}, essential \textit{addons} \\ \hline
+
+\rowcolor{lightgray!30}
+\texttt{vault} & \textit{HashiCorp Vault} installation \& configuration \\ \hline
+
+\texttt{monitoring} & \textit{Prometheus} \& \textit{Grafana} setup \\ \hline
+
+\rowcolor{lightgray!30}
+\texttt{jenkins} & \textit{Jenkins} installation \\ \hline
+
+\texttt{argocd} & \textit{ArgoCD} installation \\ \hline
+
+\rowcolor{lightgray!30}
+\texttt{knative} & \textit{Knative} enablement, \textit{MinIO Client} installation \\ \hline
+
+\texttt{infracost} & Cost estimation tool installation \\ \hline
+\end{tabularx}
+\end{table}
+
+\newpage
 
 
