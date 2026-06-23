@@ -1,30 +1,24 @@
 \section{GitOps \& CI/CD}
-{
-    \metroset{titleformat frame=smallcaps}
 
-% --- Slide 1 (words) ---
-\begin{frame}{From Manual Deployment to Automated GitOps}
-\begin{itemize}
-    \item \textbf{The old way:} custom Dockerfiles built by hand, \texttt{docker-compose} for local runs, and manifests applied manually with \texttt{kubectl}.
-    \item \textbf{The problem:} error-prone, not repeatable, and impossible to audit.
-    \item \textbf{The monorepo:} one repository holds the code, Dockerfiles and Kubernetes manifests together.
-    \item \textcolor{HUAblue}{\textbf{The goal:}} a single \texttt{git push} should take code all the way to the cluster, automatically.
-\end{itemize}
-\end{frame}
-
-% --- Slide 2 (words) ---
-\begin{frame}{The Pipeline: Jenkins (CI) and ArgoCD (CD)}
-\begin{itemize}
-    \item \textbf{Continuous Integration -- Jenkins:} on every push, a \texttt{Jenkinsfile} runs tests, builds the Docker images and pushes them to Docker Hub.
-    \item \textbf{Continuous Delivery -- ArgoCD:} ArgoCD watches the Git repository and automatically syncs the cluster to match it.
-    \item \textcolor{HUAblue}{\textbf{GitOps principle:}} Git is the single source of truth -- whatever is in Git is what runs in the cluster.
-\end{itemize}
-\end{frame}
-
-% --- Slide 3 (diagram) ---
-\begin{frame}{The GitOps Pipeline, End to End}
+\begin{frame}{GitOps: The End-to-End Pipeline}
     \centering
-    %\includegraphics[width=\textwidth]{figures/cicd-pipeline}
+    \makebox[\textwidth][c]{%
+        \includegraphics[width=1.1\textwidth]{project/presentation/figures/pipeline.jpg}%
+    }
+    
+    \vspace{0.3cm}
+    \begin{columns}[T]
+        \begin{column}{0.38\textwidth}
+            \begin{tcolorbox}[enhanced, colback=white, colframe=gray!20, arc=4pt, height=2cm]
+                \textcolor{targblue}{\textbf{\faSearch\ Selective Execution (Jenkins)}}\\
+                \scriptsize Monorepo + \texttt{when \{ changeset \}} $\rightarrow$ build only when the component changes. No redundant images built.
+            \end{tcolorbox}
+        \end{column}
+        \begin{column}{0.38\textwidth}
+            \begin{tcolorbox}[enhanced, colback=white, colframe=gray!20, arc=4pt, height=2cm]
+                \textcolor{solutiongreen}{\textbf{\faInfinity\ Self-Heal + Prune (ArgoCD)}}\\
+                \scriptsize Git is the single source of truth. Manual \texttt{kubectl} edits are automatically reverted. Resources not in Git are pruned.
+            \end{tcolorbox}
+        \end{column}
+    \end{columns}
 \end{frame}
-
-}

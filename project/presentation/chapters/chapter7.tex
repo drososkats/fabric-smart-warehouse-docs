@@ -1,29 +1,119 @@
 \section{Monitoring, Scaling \& SLAs}
+
 {
     \metroset{titleformat frame=smallcaps}
 
-% --- Slide 1 (words) ---
-\begin{frame}{Observability \& Autoscaling}
-\begin{itemize}
-    \item \textbf{Two key metrics:} HTTP request latency and CPU/memory utilization, collected by Prometheus.
-    \item \textbf{Visualization:} Grafana dashboards turn raw metrics into readable, real-time charts.
-    \item \textcolor{HUAblue}{\textbf{Autoscaling:}} the HPA reads these metrics and scales the backend from 2 to 10 pods under load.
-\end{itemize}
+    % --- Slide 1 (Visual: Observability & Autoscaling) ---
+   \begin{frame}{Monitoring \& Autoscaling}
+    \vspace{0.2cm}
+    \begin{columns}[T]
+        
+        % Left Column: Prometheus
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt, top=3mm, bottom=3mm]
+                \textcolor{blue!70!black}{\Large\faChartLine}\hspace{0.15cm} \textbf{\large Prometheus + Grafana}\\[0.3cm]
+                
+                \scriptsize CPU \& memory per pod, HTTP request count. Custom dashboard for backend + Vault Agent sidecar, plus ``Node Exporter Full''.\\[0.6cm]
+                
+                \textcolor{gray!80!black}{\textbf{\footnotesize Node-level utilization (24h)}}\\[0.1cm]
+                \begin{tabular}{@{}p{1.3cm} p{1.6cm} p{1.3cm}@{}}
+                    \textcolor{green!60!black}{\large \textbf{9.4\%}} & \textcolor{orange!80!black}{\large \textbf{49.9\%}} & \textcolor{green!60!black}{\large \textbf{31.7\%}} \\
+                    \tiny CPU & \tiny Memory & \tiny Disk
+                \end{tabular}\\[0.3cm]
+                
+                \tiny \textit{\textcolor{gray}{Despite co-hosting Jenkins, ArgoCD, Vault \& app.}}
+            \end{tcolorbox}
+        \end{column}
+        
+        % Right Column: HPA
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt, top=3mm, bottom=3mm]
+                \textcolor{teal!70!black}{\Large\faBalanceScale}\hspace{0.15cm} \textbf{\large Pod Autoscaler (HPA)}\\[0.3cm]
+                
+                \scriptsize Two independent reference metrics — the higher result between them is adopted:\\[0.5cm]
+                
+            
+                \renewcommand{\arraystretch}{1.5}
+                \begin{tabular}{@{}p{3.2cm} r@{}}
+                    \scriptsize CPU target & \textcolor{blue!80!black}{\textbf{50\%}} \\
+                    \scriptsize Memory target & \textcolor{blue!80!black}{\textbf{70\%}} \\
+                    \scriptsize min / max replicas & \textcolor{blue!80!black}{\textbf{1 $\rightarrow$ 5}}
+                \end{tabular}\\[0.3cm]
+                \renewcommand{\arraystretch}{1} 
+                
+                \tiny \textit{\textcolor{gray}{Operates reliably because the backend is stateless — every new replica serves requests immediately.}}
+            \end{tcolorbox}
+        \end{column}
+        
+    \end{columns}
 \end{frame}
 
-% --- Slide 2 (diagram) ---
-\begin{frame}{Metrics-Driven Scaling}
-    \centering
-    %\includegraphics[width=\textwidth]{figures/monitoring-autoscaling}
-\end{frame}
-
-% --- Slide 3 (words + results) ---
-\begin{frame}{Experimental SLAs: Gold, Silver, Bronze}
-\begin{itemize}
-    \item \textbf{Load testing:} generated increasing load (50 to 1000 users) and measured response times.
-    \item \textbf{Deriving the rule:} the 99\% CDF of latency gives the threshold for each service class.
-    \item \textcolor{HUAblue}{\textbf{Three tiers:}} Gold (strict), Silver (standard), Bronze (relaxed) -- defined from real measurements, not guesses.
-\end{itemize}
-\end{frame}
+    % --- Slide 2 ---
+    \begin{frame}[plain]
+        \centering
+        \footnotesize\textbf{\color{HUAblue}Grafana: CPU and Memory Usage of the Backend Pod}\\[4pt]
+        \includegraphics[width=0.85\paperwidth]{project/presentation/figures/grafana-backend-cpu-memory-usage.png}
+    \end{frame}
 
 }
+
+    % --- Slide 3---
+    \begin{frame}[plain]
+        \centering
+        \footnotesize\textbf{\color{HUAblue}Grafana: Node Exporter Full Dashboard}\\[4pt]
+        \includegraphics[width=0.7\paperwidth]{project/presentation/figures/grafana-dashboard.png}
+    \end{frame}
+
+% --- Slide 4 (Visual: SLAs) ---
+\begin{frame}{From Metrics to Guaranteed SLAs}
+    \vspace{0.2cm}
+    \begin{columns}[T]
+        
+        % Left Column: Metrics
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+                \textbf{\large GET \texttt{/api/products}}\\[0.1cm]
+                \tiny \textcolor{gray!80!black}{100 virtual users $\cdot$ 6,823 requests}\\[0.2cm]
+                \begin{tabular}{@{}p{3.5cm} p{2cm}@{}}
+                    \textcolor{teal!70!black}{\huge \textbf{14.2ms}} & \textcolor{green!60!black}{\scriptsize \textbf{0.00\%}} \\
+                    \tiny p(95) & \tiny \textcolor{green!60!black}{failure rate}
+                \end{tabular}
+            \end{tcolorbox}
+            \vspace{0.3cm}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+                \textbf{\large POST \texttt{/api/products}}\\[0.1cm]
+                \tiny \textcolor{gray!80!black}{20 virtual users $\cdot$ 1,018 requests}\\[0.2cm]
+                \begin{tabular}{@{}p{3.5cm} p{2cm}@{}}
+                    \textcolor{blue!70!black}{\huge \textbf{80.1ms}} & \textcolor{green!60!black}{\scriptsize \textbf{0.00\%}} \\
+                    \tiny p(95) & \tiny \textcolor{green!60!black}{failure rate}
+                \end{tabular}
+            \end{tcolorbox}
+        \end{column}
+        
+        % Right Column: SLAs
+        \begin{column}{0.48\textwidth}
+            \vspace{0.5cm} 
+            \renewcommand{\arraystretch}{2}
+            \begin{tabular}{@{}p{0.8cm} p{4.5cm}@{}}
+                
+                \textcolor{orange!80}{\Large\faMedal} & 
+                \textbf{Gold SLA} \hfill \textcolor{orange!80!black}{\textbf{< 100ms}}\\[-0.3cm]
+                & \tiny \textit{\textcolor{gray}{GET endpoints (measured 14.2ms)}}\\
+                \hline
+                
+                \textcolor{gray!60}{\Large\faMedal} & 
+                \textbf{Silver SLA} \hfill \textcolor{gray!80!black}{\textbf{< 250ms}}\\[-0.3cm]
+                & \tiny \textit{\textcolor{gray}{POST endpoints (measured 80.1ms)}}\\
+                \hline
+                
+                \textcolor{brown!80!orange}{\Large\faMedal} & 
+                \textbf{Bronze SLA} \hfill \textcolor{brown!80!black}{\textbf{< 500ms}}\\[-0.3cm]
+                & \tiny \textit{\textcolor{gray}{Worst-case, all requests}}
+                
+            \end{tabular}
+            \renewcommand{\arraystretch}{1}
+        \end{column}
+        
+    \end{columns}
+\end{frame}
+

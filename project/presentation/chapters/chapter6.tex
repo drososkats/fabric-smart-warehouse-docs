@@ -1,24 +1,94 @@
 \section{Serverless Computation}
-{
+
     \metroset{titleformat frame=smallcaps}
 
-% --- Slide 1 (words) ---
-\begin{frame}{Serverless: Computation Without Servers}
-\begin{itemize}
-    \item \textbf{What it is:} code that runs only when an event happens -- no always-on server, resources are used only during execution.
-    \item \textbf{Where we use it:} a function triggered by a MinIO "new object" event.
-    \item \textcolor{HUAblue}{\textbf{Platform:}} Knative on MicroK8s (lightweight) for event-driven functions.
-\end{itemize}
+% --- Slide: Knative Event-Driven Thumbnails ---
+\begin{frame}{Knative: Event-Driven Thumbnails}
+    \vspace{0.2cm}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=blue!3, colframe=HUAblue, arc=2pt, boxrule=0.6pt,
+                colbacktitle=HUAblue, coltitle=white,
+                title=\footnotesize\textbf{Why Knative?}]
+                \scriptsize
+                \begin{itemize}
+                    \item Runs on existing MicroK8s (no extra infra)
+                    \item No vendor lock-in (vs AWS Lambda)
+                    \item Scale-to-zero: zero idle resource usage
+                    \item Cold start on new events
+                \end{itemize}
+            \end{tcolorbox}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=blue!3, colframe=HUAblue, arc=2pt, boxrule=0.6pt,
+                colbacktitle=HUAblue, coltitle=white,
+                title=\footnotesize\textbf{Triggering Mechanism}]
+                \scriptsize
+                \textbf{1.} New file in MinIO bucket \\[0.15cm]
+                \textbf{2.} MinIO event notification (webhook) \\[0.15cm]
+                \textbf{3.} Knative function triggered \\[0.15cm]
+                \textbf{4.} \texttt{sharp}: resize $200\times200 \rightarrow$ \texttt{thumb-} prefix
+            \end{tcolorbox}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.35cm}
+
+    \begin{tcolorbox}[colback=gray!5, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+        \scriptsize \textcolor{HUAblue}{\textbf{Note:}} Same design philosophy as the
+        resilience patterns chapter — independent scaling, no permanently reserved resources.
+    \end{tcolorbox}
 \end{frame}
 
-% --- Slide 2 (words) ---
-\begin{frame}{The Trigger in Action}
-\begin{itemize}
-    \item \textbf{Event:} when a product image is uploaded to MinIO, an event notification fires automatically.
-    \item \textbf{Function:} it reads the new image, extracts metadata (size, dimensions) and generates a thumbnail.
-    \item \textbf{Result:} the metadata and thumbnail are written back to MinIO/MongoDB -- with no manual step and no extra always-on service.
-    \item \textcolor{HUAblue}{\textbf{Benefit:}} heavy, occasional work is offloaded from the always-on backend.
-\end{itemize}
-\end{frame}
+% --- Slide 2  ---
+\begin{frame}{Diagnosis: Infinite Loop in Event-Driven Logic}
+    \centering
+    \vspace{0.3cm}
+    
+    \tcbset{
+        stepbox/.style={
+            colback=white,
+            colframe=gray!30,
+            arc=2pt,
+            boxrule=0.5pt,
+            width=2.6cm, 
+            height=3.2cm, 
+            halign=center, 
+            valign=center,
+            fontupper=\scriptsize
+        }
+    }
 
-}
+    \begin{tabular}{c @{\hspace{0.2cm}\textcolor{gray!60}{$\rightarrow$}\hspace{0.2cm}} c @{\hspace{0.2cm}\textcolor{gray!60}{$\rightarrow$}\hspace{0.2cm}} c @{\hspace{0.2cm}\textcolor{gray!60}{$\rightarrow$}\hspace{0.2cm}} c}
+        
+        \begin{tcolorbox}[stepbox]
+            \textbf{\textcolor{red!70!black}{Symptom}} \\ \vspace{0.1cm}
+            \tiny Thumbnail function executes endlessly for the same file.
+        \end{tcolorbox} &
+        
+        \begin{tcolorbox}[stepbox]
+            \textbf{\textcolor{orange!80!black}{Immediate Action}} \\ \vspace{0.1cm}
+            \tiny Removed event notification first — stopped resource drain.
+        \end{tcolorbox} &
+        
+        \begin{tcolorbox}[stepbox]
+            \textbf{\textcolor{blue!70!black}{Diagnosis}} \\ \vspace{0.1cm}
+            \tiny \texttt{setObjectTagging()} generates a new event triggering the function again.
+        \end{tcolorbox} &
+        
+        \begin{tcolorbox}[stepbox, colback=green!5]
+            \textbf{\textcolor{green!60!black}{Root Cause}} \\ \vspace{0.1cm}
+            \tiny Guard check compared to string 'true', minio-js returns boolean \texttt{true} $\rightarrow$ silent fail.
+        \end{tcolorbox}
+        
+    \end{tabular}
+    
+    \vspace{0.5cm}
+    
+    \begin{tcolorbox}[colback=black!85, colframe=black!85, arc=2pt, coltext=white, width=0.85\textwidth]
+        \scriptsize \textit{\color{gray!50}The fix (checks both possible formats):}\\[0.2cm]
+        \textcolor{green!50!white}{\texttt{if (tags.some(t => t.Key === 'processed' \&\&}} \\ 
+        \textcolor{green!50!white}{\texttt{\hspace{1cm}(t.Value === 'true' || t.Value === true)))}}
+    \end{tcolorbox}
+    
+\end{frame}

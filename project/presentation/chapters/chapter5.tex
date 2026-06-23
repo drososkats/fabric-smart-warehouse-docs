@@ -1,34 +1,175 @@
 \section{Design Patterns \& Resilience}
-{
-    \metroset{titleformat frame=smallcaps}
 
-% --- Slide 1 (words) ---
-\begin{frame}{Designing for Failure: Why Resilience Matters}
-\begin{itemize}
-    \item In a distributed system, failures are normal: networks blip, services restart, requests get duplicated.
-    \item A naive application crashes or corrupts data when this happens.
-    \item \textcolor{HUAblue}{\textbf{The idea:}} cloud-native design patterns turn these failures into handled, recoverable events.
-\end{itemize}
+% --- Slide 1: The 4 Patterns ---
+\begin{frame}{Designing for Failure: 4 Resilience Patterns}
+    \vspace{0.2cm}
+    
+    % --- 1η Γραμμή (Claim Check & Retry) ---
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[enhanced, colback=white, colframe=blue!70!black, arc=4pt, boxrule=1pt, drop fuzzy shadow]
+                \textbf{\textcolor{blue!70!black}{\large Claim Check}}\\[4pt]
+                \scriptsize Large files $\rightarrow$ MinIO. Only the URL reference travels, keeping message payloads lightweight.
+            \end{tcolorbox}
+        \end{column}
+        
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[enhanced, colback=white, colframe=orange!80!black, arc=4pt, boxrule=1pt, drop fuzzy shadow]
+                \textbf{\textcolor{orange!80!black}{\large Retry}}\\[4pt]
+                \scriptsize 3 connection attempts with a 2s fixed delay to gracefully handle transient network hiccups.
+            \end{tcolorbox}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.3cm} 
+
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[enhanced, colback=white, colframe=green!60!black, arc=4pt, boxrule=1pt, drop fuzzy shadow]
+                \textbf{\textcolor{green!60!black}{\large Idempotency}}\\[4pt]
+                \scriptsize Client-side key ensures safety. Subsequent requests with the same key $\rightarrow$ \textbf{409 Conflict}.
+            \end{tcolorbox}
+        \end{column}
+        
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[enhanced, colback=white, colframe=teal!70!black, arc=4pt, boxrule=1pt, drop fuzzy shadow]
+                \textbf{\textcolor{teal!70!black}{\large Stateless}}\\[4pt]
+                \scriptsize No local session state. Independent instances scale easily using JWT + MongoDB persistence.
+            \end{tcolorbox}
+        \end{column}
+    \end{columns}
 \end{frame}
 
-% --- Slide 2 (words) ---
-\begin{frame}{Decoupling \& Recovery}
-\begin{itemize}
-    \item \textbf{Claim Check:} large product images go to MinIO; only a lightweight reference travels through RabbitMQ.
-    \item \textbf{Retry (exponential backoff):} transient failures when talking to RabbitMQ and MongoDB are retried automatically.
-    \item \textbf{Circuit Breaker:} if a dependency is down, the breaker opens and fails fast, preventing cascading failures.
-\end{itemize}
+
+% --- Slide 2: Idempotency Proof ---
+\begin{frame}{Idempotency: Validation in Action}
+    \vspace{0.4cm}
+    
+    \begin{columns}[c]
+        
+        % --- 1st Request (Success) ---
+        \begin{column}{0.45\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+                \textbf{\textcolor{green!60!black}{1st Request}}\\[0.2cm]
+                \scriptsize
+                \textcolor{blue!70!black}{\textbf{POST}} \texttt{/api/products} \\
+                \textcolor{gray!80!black}{\texttt{-F "idempotencyKey=demo-12345"}} \\[0.4cm]
+                \textcolor{green!60!black}{\large \textbf{201 Created}}
+            \end{tcolorbox}
+        \end{column}
+    
+        \begin{column}{0.06\textwidth}
+            \centering
+            \textcolor{gray!60}{\Large $\rightarrow$}
+        \end{column}
+        
+        % --- 2nd Request (Conflict) ---
+        \begin{column}{0.45\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+                \textbf{\textcolor{red!70!black}{2nd Request} \small(same key)}\\[0.2cm]
+                \scriptsize
+                \textcolor{blue!70!black}{\textbf{POST}} \texttt{/api/products} \\
+                \textcolor{gray!80!black}{\texttt{-F "idempotencyKey=demo-12345"}} \\[0.2cm]
+                \textcolor{red!70!black}{\large \textbf{409 Conflict}} \\
+                \textit{\tiny "Duplicate request - already submitted"}
+            \end{tcolorbox}
+        \end{column}
+        
+    \end{columns}
+    
+    \vspace{0.6cm}
+    
+    % --- Unit Test Coverage Box---
+    \begin{tcolorbox}[colback=gray!5, colframe=gray!20, arc=2pt, boxrule=0.5pt]
+        \footnotesize \textcolor{blue!70!black}{\textbf{Unit Test Coverage:}} Verified 3 scenarios: new key, reused key, and request without key.
+    \end{tcolorbox}
+    
 \end{frame}
 
-% --- Slide 3 (words) ---
-\begin{frame}{Safety \& Scale}
-\begin{itemize}
-    \item \textbf{Idempotency:} an idempotency key prevents duplicate products on a retried or double-submitted request.
-    \item \textbf{Stateless services:} the backend keeps no local state -- everything lives in MongoDB/MinIO -- so it scales horizontally and survives restarts.
-    \item \textcolor{HUAblue}{\textbf{Together:}} these patterns make the system fault-tolerant and ready to scale.
-\end{itemize}
+% --- Slide 3: The Problem Without Idempotency ---
+\begin{frame}{Without Idempotency: The Problem}
+    \vspace{0.4cm}
+
+    \begin{tcolorbox}[colback=red!3, colframe=red!40, arc=2pt, boxrule=0.5pt]
+        \textbf{\textcolor{red!70!black}{Scenario:}} Network retry or accidental double-submit sends the
+        \textit{same} request twice — without a key, the backend has no way to detect this.
+    \end{tcolorbox}
+
+    \vspace{0.5cm}
+
+    \begin{center}
+        \includegraphics[width=0.85\textwidth]{project/presentation/figures/idempotency-problem.png}
+    \end{center}
+
+    \vspace{0.4cm}
+
+    \begin{tcolorbox}[colback=gray!5, colframe=gray!20, arc=2pt, boxrule=0.5pt]
+        \footnotesize \textcolor{red!70!black}{\textbf{Result:}} Three identical uploads
+        (\texttt{img-...429}, \texttt{...567}, \texttt{...592}) land in MinIO within seconds —
+        duplicate data with no protection at the API layer.
+    \end{tcolorbox}
+
 \end{frame}
 
+% --- Slide 4: With Idempotency: The Fix in Action ---
+\begin{frame}{With Idempotency: The Fix in Action}
+    \vspace{0.4cm}
+
+    \begin{tcolorbox}[colback=green!3, colframe=green!40!black, arc=2pt, boxrule=0.5pt]
+        \textbf{\textcolor{green!60!black}{Scenario:}} Same request, same \texttt{idempotencyKey},
+        sent twice — this time the backend remembers.
+    \end{tcolorbox}
+
+    \vspace{0.5cm}
+
+    \begin{center}
+        \includegraphics[width=0.65\textwidth]{project/presentation/figures/idempotency-blocked-req1.png}
+    \end{center}
+
+    \vspace{0.4cm}
+
+    \begin{tcolorbox}[colback=gray!5, colframe=gray!20, arc=2pt, boxrule=0.5pt]
+        \footnotesize \textcolor{green!60!black}{\textbf{Result:}} The second identical submission
+        is rejected with \texttt{409 Conflict} \textit{before} reaching MongoDB or MinIO —
+        no duplicate product, no duplicate file.
+    \end{tcolorbox}
+
+\end{frame}
+
+% --- Slide 5: Retry Pattern in Code ---
+\begin{frame}[fragile]{Retry Pattern: Implementation}
+
+    \begin{tcolorbox}[colback=blue!3, colframe=blue!40, arc=2pt, boxrule=0.5pt, title=\footnotesize\textbf{Generic Retry Utility (\texttt{retry.js})}]
+\ttfamily\scriptsize
+\begin{verbatim}
+async function retryWithDelay(fn, { retries = 3, delayMs = 2000,
+                                     label = "operation" } = {}) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
+\end{verbatim}
+    \end{tcolorbox}
 
+    \vspace{0.2cm}
 
+    \begin{tcolorbox}[colback=green!3, colframe=green!40!black, arc=2pt, boxrule=0.5pt, title=\footnotesize\textbf{Applied to: MongoDB Connection (Startup)}]
+\ttfamily\scriptsize
+\begin{verbatim}
+retryWithDelay(
+  () => mongoose.connect(MONGO_URI)
+          .then(() => console.log("MongoDB connected")),
+  { retries: 3, delayMs: 2000, label: "MongoDB connection" }
+);
+\end{verbatim}
+    \end{tcolorbox}
+
+\end{frame}

@@ -1,47 +1,148 @@
 \section{Introduction}
 {
-    \metroset{titleformat frame=smallcaps}
+\metroset{titleformat frame=smallcaps}
 
 % --- Slide 1 ---
-\begin{frame}[fragile]{From a Local Prototype to a Production Platform}
-\begin{itemize}
-    \item \textbf{Starting point:} a working ERP + IoT prototype from the "Cloud Platforms" course, running locally on a single machine.
-    \item \textbf{Limitations of the local setup:}
-    \begin{itemize}
-        \item \textbf{Ephemeral storage:} data and images were lost on every restart.
-        \item \textbf{Manual deployment:} the cluster was deployed by hand, via a script.
-        \item \textbf{No resilience:} no patterns, no monitoring, no automation.
-    \end{itemize}
-    \item \textcolor{HUAblue}{\textbf{The question:}} how do we turn this prototype into a production-ready, cloud-native platform?
-\end{itemize}
+\begin{frame}{Where We Start: The Problem}
+\subtitlebar{The application was already containerized (Docker) and running in MicroK8s -- but locally.}
+
+\vspace{0.2cm}
+
+\begin{columns}[T, totalwidth=\textwidth]
+  % Card 1
+  \begin{column}{0.23\textwidth}
+    \begin{tcolorbox}[problemcard=HUAblue]
+      \centering
+      {\color{problemorange}\faExclamationTriangle}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Tied\\[-2pt]Infrastructure}
+      \vspace{4pt}
+      \hrule
+      \vspace{4pt}
+      \raggedright\tiny
+      No independent scaling or remote access.
+    \end{tcolorbox}
+  \end{column}
+  
+  % Card 2
+  \begin{column}{0.23\textwidth}
+    \begin{tcolorbox}[problemcard=HUAblue]
+      \centering
+      {\color{problemorange}\faCogs}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Manual\\[-2pt]Configuration}
+      \vspace{4pt}
+      \hrule
+      \vspace{4pt}
+      \raggedright\tiny
+      Non-reproducible environment, step-by-step setup.
+    \end{tcolorbox}
+  \end{column}
+  
+  % Card 3
+  \begin{column}{0.23\textwidth}
+    \begin{tcolorbox}[problemcard=HUAblue]
+      \centering
+      {\color{problemorange}\faSync}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Manual\\[-2pt]Deployments}
+      \vspace{4pt}
+      \hrule
+      \vspace{4pt}
+      \raggedright\tiny
+      Every code change = manual rebuild/redeploy.
+    \end{tcolorbox}
+  \end{column}
+  
+  % Card 4
+  \begin{column}{0.23\textwidth}
+    \begin{tcolorbox}[problemcard=HUAblue]
+      \centering
+      {\color{problemorange}\faKey}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize No Secrets\\[-2pt]Management}
+      \vspace{4pt}
+      \hrule
+      \vspace{4pt}
+      \raggedright\tiny
+      Hardcoded credentials, no proper monitoring.
+    \end{tcolorbox}
+  \end{column}
+\end{columns}
+
+\vspace{0.3cm}
+
+% Bottom Banner (Objective)
+\begin{tcolorbox}[
+  enhanced, boxrule=0pt,
+  colback=HUAblue!10, colframe=HUAblue!10,
+  arc=4pt, left=8pt, right=8pt, top=5pt, bottom=5pt,
+  borderline west={4pt}{0pt}{HUAblue},
+]
+  {\color{HUAblue}\bfseries\small \faRocket\quad Objective of the Project}
+  \vspace{4pt}\\
+  \footnotesize
+  Transition to a fully automated, \textbf{cloud-native infrastructure on Azure} — without changing the application's underlying business logic.
+\end{tcolorbox}
+
 \end{frame}
+
 
 % --- Slide 2 ---
-\begin{frame}[fragile]{The Business Scenario: A Smart Warehouse}
-\begin{itemize}
-    \item \textbf{The idea:} monitor a warehouse in real time -- both its products and its environmental conditions.
-    \item \textbf{The flow in one line:} an employee adds a product, and the system tracks the temperature and humidity of its storage area.
-    \item \textbf{Why it fits cloud-native:}
-    \begin{itemize}
-        \item Event-driven and distributed by nature.
-        \item Needs to stay available under failures.
-        \item Needs to scale with load.
-    \end{itemize}
-\end{itemize}
-\end{frame}
+\begin{frame}{Project Goals \& Methodology}
+\subtitlebar{Transforming a local prototype into a resilient cloud-native platform}
 
-% --- Slide 3 ---
-\begin{frame}[fragile]{Goals \& Approach}
-\begin{itemize}
-    \item \textbf{Goal:} transform the application into a cloud-native system using design patterns, GitOps, monitoring, IaC and SLAs.
-    \item \textbf{Methodology:} an incremental approach -- first the foundation, then resilience, then proof through measurements.
-    \item \textcolor{HUAblue}{\textbf{What follows:}}
-    \begin{itemize}
-        \item Architecture \& services
-        \item Automation, CI/CD \& design patterns
-        \item Serverless, monitoring \& SLAs
-    \end{itemize}
-\end{itemize}
-\end{frame}
+\vspace{0.3cm}
 
-}
+\begin{columns}[T, totalwidth=\textwidth]
+  
+  % --- Column 1 ---
+  \begin{column}{0.31\textwidth}
+    % Card 1
+    \begin{tcolorbox}[goalcard]
+      \goalicon{\faLayerGroup}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Multiple Cloud Tech}\\
+      \raggedright\tiny Each selected for a specific functional role
+    \end{tcolorbox}
+    \vspace{0.1cm}
+    % Card 4
+    \begin{tcolorbox}[goalcard]
+      \goalicon{\faServer}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Infrastructure as Code}\\
+      \raggedright\tiny Full automation via OpenTofu \& Ansible
+    \end{tcolorbox}
+  \end{column}
+
+  % --- Column 2 ---
+  \begin{column}{0.31\textwidth}
+    % Card 2
+    \begin{tcolorbox}[goalcard]
+      \goalicon{\faLock}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Resilience Patterns}\\
+      \raggedright\tiny Claim Check, Retry, Idempotency, Stateless
+    \end{tcolorbox}
+    \vspace{0.1cm}
+    % Card 5
+    \begin{tcolorbox}[goalcard]
+      \goalicon{\faSync}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize GitOps Practices}\\
+      \raggedright\tiny Jenkins (CI) + ArgoCD (CD), zero manual steps
+    \end{tcolorbox}
+  \end{column}
+
+  % --- Column 3 ---
+  \begin{column}{0.31\textwidth}
+    % Card 3
+    \begin{tcolorbox}[goalcard]
+      \goalicon{\faBolt}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Serverless Computing}\\
+      \raggedright\tiny Event-driven logic without permanent compute
+    \end{tcolorbox}
+    \vspace{0.1cm}
+    % Card 6
+    \begin{tcolorbox}[goalcard]
+      \goalicon{\faChartLine}\\[4pt]
+      {\color{HUAblue}\bfseries\scriptsize Documented SLAs}\\
+      \raggedright\tiny Based on real load testing measurements
+    \end{tcolorbox}
+  \end{column}
+
+\end{columns}
+
+\end{frame}

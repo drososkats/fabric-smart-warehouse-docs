@@ -1,25 +1,49 @@
 \section{Conclusions \& Future Work}
+
 \begin{frame}{Conclusions \& Future Work}
-    \begin{itemize}
-        \item \textbf{Cloud-Native transformation:} evolved a local prototype into a resilient, automated platform on Kubernetes.
-        \item \textbf{Full GitOps automation:} a single \texttt{git push} flows to the cluster via Jenkins and ArgoCD -- no manual scripts.
-        \item \textbf{Resilience by design:} Claim Check, Retry, Circuit Breaker, Idempotency and Stateless patterns make the system fault-tolerant.
-        \item \textbf{Observability \& SLAs:} Prometheus/Grafana, autoscaling, and SLA tiers derived from real load tests.
-        \item \textcolor{HUAblue}{\textbf{Future work:}} centralized identity with Keycloak (SSO), Ingress with TLS, and a custom domain for production-grade access.
-    \end{itemize}
-\end{frame}
+    \vspace{0.2cm}
+    
+    \begin{columns}[T]
+        % --- Left Column: Conclusions ---
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+                \textbf{\textcolor{blue!70!black}{Conclusions}}\\[0.2cm]
+                \scriptsize
+                \begin{itemize}
+                    \setlength{\itemsep}{6pt}
+                    \item \textbf{Cloud-native transformation:} Automated, observable, GitOps-driven platform on Azure.
+                    \item \textbf{Full GitOps automation:} \texttt{git push} flows seamlessly to the cluster via Jenkins \& ArgoCD.
+                    \item \textbf{Resilience by design:} Claim Check, Retry, Idempotency and Stateless patterns.
+                    \item \textcolor{HUAblue}{\textbf{Key Takeaway:}} Complexity lives in the \textit{interactions} between technologies, not in isolation.
+                \end{itemize}
+            \end{tcolorbox}
+        \end{column}
+        
+        % --- Right Column: Future Work ---
+        \begin{column}{0.48\textwidth}
+            \begin{tcolorbox}[colback=white, colframe=gray!30, arc=2pt, boxrule=0.5pt]
+                \textbf{\textcolor{gray!80!black}{Known Limitations \& Future Work}}\\[0.2cm]
+                \scriptsize
+                \begin{itemize}
+                    \setlength{\itemsep}{6pt}
+                    \item \textbf{Circuit Breaker:} Not yet implemented (a natural extension to the Retry mechanism).
+                    \item \textbf{RabbitMQ secrets:} Connection relies on env variables due to a known Docker image limitation.
+                    \item \textbf{GET pagination:} \texttt{/api/products} returns all records (degrades performance under high load).
+                    \item \textcolor{HUAblue}{\textbf{Pod-level FinOps:}} Requires additional tooling (e.g., \textit{OpenCost}) beyond \textit{Infracost}.
+                \end{itemize}
+            \end{tcolorbox}
+        \end{column}
+    \end{columns}
+ \end{frame}   
 
 \begin{frame}{GitHub Repository}
 \begin{center}Get the source of the whole project from\end{center}
 \begin{center}\href{https://github.com/drososkats/fabric-smart-warehouse}{\color{HUAblue}\texttt{github.com/drososkats/fabric-smart-warehouse}}\end{center}
-\begin{center}This presentation is licensed under Katsimpras Drosos (ais25123)\end{center}
-\begin{figure}[ht]
-    \centering
-    %\includegraphics[width=1.0\textwidth]{project/presentation/figures/hua/hua-logo-english-dit.png}
-\end{figure}
+\vspace{0.3cm}
+\begin{center}\small This presentation is licensed under Katsimpras Drosos (ais25123)\end{center}
 \begin{center}\ccbysa\end{center}
 \end{frame}
 
 \begin{frame}[standout, plain]
-    \textbf{Thank you! / Questions?} ~\alert{\faSmileO}~
+    \textbf{Thank you! / Questions?} ~\alert{\faSmile}~
 \end{frame}

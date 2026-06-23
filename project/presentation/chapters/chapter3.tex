@@ -1,29 +1,107 @@
 \section{Automation \& Security}
-{
-    \metroset{titleformat frame=smallcaps}
 
-% --- Slide 1 (words) ---
-\begin{frame}{Infrastructure as Code: Two Automated Steps}
-\begin{itemize}
-    \item \textbf{Provisioning -- OpenTofu:} declaratively creates the Azure VM (compute, disk, networking).
-    \item \textbf{Configuration -- Ansible:} installs Docker, MicroK8s and all dependencies on the VM.
-    \item \textcolor{HUAblue}{\textbf{The result:}} the entire environment is reproducible from code -- no manual setup, no "works on my machine".
-\end{itemize}
+\metroset{titleformat frame=smallcaps}
+
+% --- Slide 1: Infrastructure as Code ---
+\begin{frame}{Infrastructure as Code: OpenTofu \& Ansible}
+
+\vspace{0.2cm}
+\begin{columns}[T, totalwidth=\textwidth]
+  
+  % --- OpenTofu Column ---
+  \begin{column}{0.48\textwidth}
+    \begin{tcolorbox}[iacCard]
+      \tikz[baseline=(icon.base)]\node[circle, fill=targblue, text=white, minimum size=0.7cm, inner sep=0pt] (icon) {\faServer}; \hspace{4pt} \textbf{\small OpenTofu --- The ``Shell''}
+      
+      \vspace{0.3cm}
+      % List
+      \begin{itemize}
+        \setlength\itemsep{6pt}
+        \scriptsize
+        \item[\textcolor{currblue}{\faCheckCircle}] Declarative definition of Azure resources in version-controlled files.
+        \item[\textcolor{currblue}{\faCheckCircle}] Resource group $\rightarrow$ VNet/Subnet $\rightarrow$ NSG $\rightarrow$ NIC $\rightarrow$ Linux VM.
+        \item[\textcolor{currblue}{\faCheckCircle}] Ubuntu server without UI
+        \item[\textcolor{currblue}{\faCheckCircle}] Access only via SSH key --- no password.
+        \item[\textcolor{currblue}{\faCheckCircle}] Auto-shutdown at 23:00 (FinOps practice).
+      \end{itemize}
+      
+      \vfill
+      \vfill
+      
+      % Bottom Box
+      \begin{tcolorbox}[darkBottomBox]
+        \textcolor{targblue}{\textbf{9 resources}} $\cdot$ \$133.03/month cost estimate (Infracost)
+      \end{tcolorbox}
+    \end{tcolorbox}
+  \end{column}
+
+  % --- Ansible Column ---
+  \begin{column}{0.48\textwidth}
+    \begin{tcolorbox}[iacCard]
+      \tikz[baseline=(icon.base)]\node[circle, fill=solutiongreen, text=white, minimum size=0.7cm, inner sep=0pt] (icon) {\faCogs}; \hspace{4pt} \textbf{\small Ansible --- The ``Inside''}
+      
+      \vspace{0.4cm}
+      {\centering
+        \ansibleRole{base-setup} \ansibleRole{vault} \ansibleRole{monitoring}\\[6pt]
+        \ansibleRole{jenkins} \ansibleRole{argocd} \ansibleRole{knative} \ansibleRole{infracost}\par
+      }
+      
+      \vspace{0.4cm}
+      {\raggedright\scriptsize
+      7 independent, \textbf{idempotent roles} --- safe re-execution after every deallocate/start of the VM, without distinguishing the ``first time''.\par}
+      
+      \vfill 
+      
+      \begin{tcolorbox}[darkBottomBox]
+        \textcolor{solutiongreen}{\textbf{idempotent tasks:}} ``check if exists'' $\rightarrow$ install only when missing
+      \end{tcolorbox}
+    \end{tcolorbox}
+  \end{column}
+
+\end{columns}
 \end{frame}
 
-% --- Slide 2 (diagram) ---
-\begin{frame}{The Provisioning \& Configuration Pipeline}
-    \centering
-    %\includegraphics[width=\textwidth]{figures/deployment-iac}
-\end{frame}
 
-% --- Slide 3 (words) ---
-\begin{frame}{Managing Secrets Securely}
-\begin{itemize}
-    \item \textbf{No secrets in Git:} credentials (MongoDB, MinIO, RabbitMQ) are never committed to the repository.
-    \item \textbf{Externalized configuration:} secrets are stored as Kubernetes Secrets and injected into pods at runtime.
-    \item \textcolor{HUAblue}{\textbf{Future work:}} centralized secrets with HashiCorp Vault and user authentication via Keycloak (SSO).
-\end{itemize}
-\end{frame}
+% --- Slide 2: Secrets Management ---
+\begin{frame}{Secrets Management with HashiCorp Vault}
+\subtitlebar{Centralized, secure storage of credentials --- no hardcoded values in Git.}
 
+\vspace{0.5cm}
+
+% Flow Diagram
+\begin{center}
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[>=stealth, node distance=1.6cm] 
+  
+  % Nodes
+  \node[vaultnode] (ansible) {\faCogs\\[4pt]\textbf{Ansible}\\\tiny secrets.yml};
+  \node[vaultnode, right=of ansible] (vault) {\faLock\\[4pt]\textbf{Vault}\\\tiny secret/fabric};
+  \node[vaultnode, right=of vault] (agent) {\faSync\\[4pt]\textbf{vault-agent}\\\tiny sidecar container};
+  \node[vaultnode, right=of agent] (backend) {\faServer\\[4pt]\textbf{backend}\\\tiny container};
+
+  % Edges
+  \draw[->, thick, solutiongreen] (ansible) -- node[above, font=\tiny\itshape, yshift=2pt] {vault kv put} (vault);
+  \draw[->, thick, solutiongreen] (vault) -- node[above, font=\tiny\itshape, yshift=2pt] {auth + fetch} (agent);
+  \draw[->, thick, solutiongreen] (agent) -- node[above, font=\tiny\itshape, text width=1.5cm, align=center, yshift=2pt] {shared\\volume} (backend);
+
+\end{tikzpicture}%
 }
+\end{center}
+
+\vspace{0.6cm}
+
+% Checkmarks Box
+\begin{tcolorbox}[
+  enhanced, colback=currblue, colframe=currblue, arc=4pt, 
+  left=10pt, right=10pt, top=8pt, bottom=8pt, coltext=white
+]
+  \begin{itemize}
+    \setlength\itemsep{6pt}
+    \scriptsize
+    \item[\textcolor{solutiongreen}{\faCheckCircle}] \textcolor{white}{\textbf{Kubernetes auth method} --- each pod authenticates via its service account, not a static token.}
+    \item[\textcolor{solutiongreen}{\faCheckCircle}] \textcolor{white}{\textbf{Shamir seal} --- file storage protected with an unseal key.}
+    \item[\textcolor{solutiongreen}{\faCheckCircle}] \textcolor{white}{Fallback to environment variables if Vault is unavailable (e.g., local development).}
+  \end{itemize}
+\end{tcolorbox}
+
+\end{frame}
